@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint --ext .ts,.tsx src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No hay tests definidos\" && exit 0"
   },
   "dependencies": {
     "react": "^19.1.1",
