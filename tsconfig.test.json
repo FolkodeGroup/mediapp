@@ -1,0 +1,13 @@
+// tsconfig.test.json
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "module": "esnext", // <--- Agrega esta línea
+    "moduleResolution": "node", // <--- Asegúrate de que esta línea esté presente
+    "verbatimModuleSyntax": false, // <--- Agrega esta línea
+    "types": ["jest", "@testing-library/jest-dom"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
