@@ -1,28 +1,30 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"mediapp/internal/logger"
-	"go.uber.org/zap"
+	"os"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	// Inicializamos el logger
-	logger.Init()
-	defer logger.Sync()
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		fmt.Println("Falta la variable DATABASE_URL")
+		return
+	}
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		fmt.Println("Error al crear el Pool:", err)
+		return
+	}
+	defer pool.Close()
+	err = pool.Ping(context.Background())
 
-	// Ejemplo de logs
-	logger.L().Info("Servidor iniciado",
-		zap.String("version", "1.0.0"),
-		zap.Int("puerto", 8080),
-	)
-
-	logger.L().Error("Error al conectar a la base de datos",
-		zap.String("host", "localhost"),
-		zap.Error(fakeError()),
-	)
-}
-
-func fakeError() error {
-	return fmt.Errorf("falló la conexión")
+	if err != nil {
+		fmt.Println("Error al hacer el Ping a la base de datos:", err)
+	} else {
+		fmt.Println("Conexion exitosa a PostgresSQL")
+	}
 }
