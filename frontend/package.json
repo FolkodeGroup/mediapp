@@ -1,19 +1,19 @@
 {
-  "name": "mediapp",
+  "name": "mediapp-frontend",
   "version": "1.0.0",
-  "description": "üè• MediApp - Healthcare Management System",
+  "description": "Ìø• MediApp Frontend",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .ts,.tsx src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "typecheck": "tsc --noEmit",
     "test": "echo \"No hay tests definidos\" && exit 0"
   },
-  "keywords": ["react", "typescript", "vite", "tailwindcss", "go", "postgresql"],
+  "keywords": ["react", "typescript", "vite", "tailwindcss"],
   "author": "MediApp Team",
   "license": "MIT",
   "dependencies": {
