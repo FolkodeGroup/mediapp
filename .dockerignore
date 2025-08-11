@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Documentación
+README.md
+LICENSE
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Binarios y compilados
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go específico
+go.mod
+go.sum

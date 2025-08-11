@@ -2,29 +2,95 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+
+	"github.com/FolkodeGroup/mediapp/internal/logger"
 )
 
 func main() {
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		fmt.Println("Falta la variable DATABASE_URL")
-		return
-	}
-	pool, err := pgxpool.New(context.Background(), dbURL)
-	if err != nil {
-		fmt.Println("Error al crear el Pool:", err)
-		return
-	}
-	defer pool.Close()
-	err = pool.Ping(context.Background())
+	// Inicializar el logger
+	logger.Init()
+	defer logger.Sync()
 
-	if err != nil {
-		fmt.Println("Error al hacer el Ping a la base de datos:", err)
+	// Configurar modo de Gin
+	if os.Getenv("ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
 	} else {
-		fmt.Println("Conexion exitosa a PostgresSQL")
+		gin.SetMode(gin.DebugMode)
 	}
+
+	// Crear router
+	router := gin.New()
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+
+	// Rutas
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Bienvenido a la API de MediApp",
+			"status":  "Backend Go funcionando correctamente",
+			"service": "mediapp-backend",
+			"version": "1.0.0",
+		})
+	})
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"service":   "mediapp-backend",
+		})
+	})
+
+	// Puerto
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Logs de inicio
+	logger.L().Info("Servidor iniciado",
+		zap.String("version", "1.0.0"),
+		zap.String("puerto", port),
+		zap.String("environment", os.Getenv("ENV")),
+	)
+
+	// Servidor
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: router,
+	}
+
+	// Canal para señales
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Goroutine para servidor
+	go func() {
+		logger.L().Info("Servidor escuchando", zap.String("address", ":"+port))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.L().Fatal("Error al iniciar el servidor", zap.Error(err))
+		}
+	}()
+
+	// Esperar señal
+	<-done
+	logger.L().Info("Servidor deteniéndose...")
+
+	// Graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.L().Error("Error durante el apagado", zap.Error(err))
+	}
+
+	logger.L().Info("Servidor detenido correctamente")
 }
