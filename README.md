@@ -67,3 +67,23 @@ export default tseslint.config([
   },
 ])
 ```
+
+## Ejecutar tests
+
+Este proyecto utiliza **Jest** y **React Testing Library** para pruebas unitarias de componentes.
+
+Para ejecutar los tests, usa el siguiente comando en la raíz del proyecto:
+
+```sh
+npx jest
+```
+
+También puedes usar el script de npm si está disponible:
+
+```sh
+npm test
+```
+
+> **Recomendación:** Instala la extensión "Jest" en VS Code para ejecutar y ver los resultados de los tests directamente en el editor.
+
+Los tests se encuentran en archivos con la extensión `.test.tsx` dentro de la
