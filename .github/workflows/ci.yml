@@ -94,4 +94,4 @@ jobs:
                    \"footer\": {\"text\": \"GitHub Actions\"}
                  }]
                }" \
-               ${{ secrets.https://discord.com/api/webhooks/1404871267927982140/lZqfdBO3u817OzvQVW9peeBlB3Z6azHw7-fNGKwySQWK7Po0HVTv4WXodwX11QGj2Azx }}
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
