@@ -1,7 +1,7 @@
 {
   "name": "mediapp-frontend",
   "version": "1.0.0",
-  "description": "í¿¥ MediApp Frontend",
+  "description": "ï¿½ï¿½ï¿½ MediApp Frontend",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,10 +13,16 @@
     "typecheck": "tsc --noEmit",
     "test": "echo \"No hay tests definidos\" && exit 0"
   },
-  "keywords": ["react", "typescript", "vite", "tailwindcss"],
+  "keywords": [
+    "react",
+    "typescript",
+    "vite",
+    "tailwindcss"
+  ],
   "author": "MediApp Team",
   "license": "MIT",
   "dependencies": {
+    "msw": "^2.10.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.1.1"
