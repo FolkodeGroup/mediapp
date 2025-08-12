@@ -3,6 +3,9 @@
     "jsx": "react-jsx",
     "esModuleInterop": true
   },
+  "include": [
+    "src"
+  ],
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
