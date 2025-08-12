@@ -1,72 +1,147 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Mediapp
 
-Currently, two official plugins are available:
+Plataforma fullstack para gestión médica. Incluye frontend (React + Vite + TypeScript), backend (Go) y base de datos PostgreSQL, todo orquestado con Docker Compose.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## Tabla de contenidos
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- [Requisitos previos](#requisitos-previos)
+- [Cómo levantar el proyecto](#cómo-levantar-el-proyecto)
+  - [Con Docker Compose (recomendado)](#con-docker-compose-recomendado)
+  - [Manual (sin Docker)](#manual-sin-docker)
+- [Flujos principales](#flujos-principales)
+- [Ejecución de tests](#ejecución-de-tests)
+- [Errores comunes](#errores-comunes)
+- [Contacto y soporte](#contacto-y-soporte)
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Requisitos previos
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- [Docker](https://www.docker.com/) y [Docker Compose](https://docs.docker.com/compose/) instalados
+- Node.js >= 18 (para desarrollo local frontend)
+- Go >= 1.21 (para desarrollo local backend)
+
+---
+
+## Cómo levantar el proyecto
+
+### Con Docker Compose (recomendado)
+
+1. Clona el repositorio:
+   ```bash
+   git clone <url-del-repo>
+   cd mediapp
+   ```
+2. Copia los archivos de ejemplo de variables de entorno si existen (`.env.example` → `.env`).
+3. Levanta todos los servicios:
+   ```bash
+   docker-compose up --build
+   ```
+   Esto inicia:
+   - Frontend en [http://localhost:3000](http://localhost:3000) (o el puerto configurado)
+   - Backend en [http://localhost:8080](http://localhost:8080)
+   - Base de datos PostgreSQL
+
+4. (Opcional) Aplica migraciones y seed manualmente si es necesario:
+   ```bash
+   docker-compose exec backend goose -dir backend/migrations postgres "postgres://mediapp_user:mediapp_password_2024@database:5432/mediapp_db?sslmode=disable" up
+   ```
+
+### Manual (sin Docker)
+
+#### Backend
+1. Instala dependencias:
+   ```bash
+   cd backend
+   go mod download
+   ```
+2. Compila y ejecuta:
+   ```bash
+   go run ./cmd/server/main.go
+   ```
+3. Aplica migraciones y seed (requiere [goose](https://github.com/pressly/goose)):
+   ```bash
+   goose -dir migrations postgres "postgres://usuario:contraseña@localhost:5432/mediapp_db?sslmode=disable" up
+   ```
+
+#### Frontend
+1. Instala dependencias:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Ejecuta en modo desarrollo:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## Flujos principales
+
+- **Inicio rápido:**
+  - Clona el repo, instala dependencias y ejecuta con Docker Compose.
+- **Desarrollo frontend:**
+  - Usa `npm run dev` en `frontend/` para hot reload.
+- **Desarrollo backend:**
+  - Usa `go run ./cmd/server/main.go` en `backend/`.
+- **Migraciones y seed:**
+  - Usa goose para aplicar migraciones SQL y datos de prueba.
+
+---
+
+## Ejecución de tests
+
+### Frontend
+
+Este proyecto utiliza **Jest** y **React Testing Library** para pruebas unitarias de componentes.
+
+Para ejecutar los tests de frontend, usa:
+
+```sh
+npx jest
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+O bien:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm test
 ```
+
+Los tests están en archivos `.test.tsx` dentro de `src/components`.
+
+### Backend
+
+Para ejecutar todos los tests del backend:
+
+```sh
+cd backend
+go test ./...
+```
+
+---
+
+## Errores comunes
+
+- **El puerto ya está en uso:**
+  - Cambia los puertos en `docker-compose.yml` o cierra el proceso que lo usa.
+- **Problemas de permisos en Docker:**
+  - Ejecuta con permisos adecuados o revisa la configuración de Docker Desktop.
+- **No se conecta a la base de datos:**
+  - Verifica variables de entorno y que el servicio `database` esté corriendo.
+- **Fallo al instalar dependencias (npm/go):**
+  - Borra `node_modules`/`go.sum` y reinstala.
+- **Error de goose:**
+  - Asegúrate de tener la versión correcta instalada y la cadena de conexión válida.
+
+---
+
+## Contacto y soporte
+
+Para dudas, sugerencias o reportar bugs, abre un issue o contacta al equipo de Folkode Group.
 
 ## Ejecutar tests
 
