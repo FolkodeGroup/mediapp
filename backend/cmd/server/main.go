@@ -11,13 +11,29 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/FolkodeGroup/mediapp/internal/config"
+	"github.com/FolkodeGroup/mediapp/internal/db"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
 )
 
 func main() {
+	// Cargar variables de entorno
+	config.LoadEnv()
+
 	// Inicializar el logger
 	logger.Init()
 	defer logger.Sync()
+	// Conexión a la base de datos
+	pool, err := db.Connect(logger.L())
+	if err != nil {
+		logger.L().Fatal("No se pudo conectar a la base de datos", zap.Error(err))
+	}
+	defer func() {
+		if pool != nil {
+			pool.Close()
+			logger.L().Info("Pool de conexiones cerrado")
+		}
+	}()
 
 	// Configurar modo de Gin
 	if os.Getenv("ENV") == "production" {
