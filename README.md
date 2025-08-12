@@ -72,7 +72,7 @@ export default tseslint.config([
 
 Este proyecto utiliza **Jest** y **React Testing Library** para pruebas unitarias de componentes.
 
-Para ejecutar los tests, usa el siguiente comando en la raíz del proyecto:
+Para ejecutar los tests de frontend, usa el siguiente comando en la raíz del proyecto:
 
 ```sh
 npx jest
@@ -86,4 +86,16 @@ npm test
 
 > **Recomendación:** Instala la extensión "Jest" en VS Code para ejecutar y ver los resultados de los tests directamente en el editor.
 
-Los tests se encuentran en archivos con la extensión `.test.tsx` dentro de la
+Los tests se encuentran en archivos con la extensión `.test.tsx` dentro de la carpeta `src/components`.
+
+---
+
+## Ejecutar tests en el backend (Go)
+
+Para ejecutar todos los tests del backend, usa el siguiente comando desde la raíz del proyecto o dentro de la carpeta `backend`:
+
+```sh
+go test ./...
+```
+
+Este comando ejecuta todos los archivos de test (`*_test.go`) en los subdirectorios del backend y muestra los resultados
