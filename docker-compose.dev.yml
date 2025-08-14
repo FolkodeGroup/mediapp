@@ -30,14 +30,17 @@ services:
     networks:
       - mediapp-network
     environment:
-      - DB_HOST=192.168.1.36
+      - DB_HOST=database
       - DB_PORT=5432
-      - DB_NAME=Mediapp
-      - DB_USER=postgres
-      - DB_PASSWORD=Administracion
-      - DATABASE_URL=postgres://postgres:Administracion@192.168.1.36:5432/Mediapp
+      - DB_NAME=mediapp_db
+      - DB_USER=mediapp_user
+      - DB_PASSWORD=mediapp_password_2024
+      - DATABASE_URL=postgres://mediapp_user:mediapp_password_2024@database:5432/mediapp_db
       - ENV=development
       - GO_ENV=development
+    depends_on:
+      database:
+        condition: service_healthy
 
   database:
     image: postgres:16-alpine
