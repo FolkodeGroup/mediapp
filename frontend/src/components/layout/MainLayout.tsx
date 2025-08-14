@@ -6,9 +6,9 @@ type Props = {
 
 const MainLayout = ({ children }: Props) => {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
       <Header />
-      <main className="p-4">{children}</main>
+      <main>{children}</main>
     </div>
   )
 }

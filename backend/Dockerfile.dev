@@ -1,0 +1,25 @@
+# backend/Dockerfile.dev
+FROM golang:1.23-alpine AS development
+
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache git
+
+# Instalar air para hot reload
+RUN go install github.com/cosmtrek/air@latest
+
+# Copiar go mod files
+COPY go.mod go.sum ./
+
+# Descargar dependencias
+RUN go mod download
+
+# Copiar código fuente
+COPY . .
+
+# Exponer puerto
+EXPOSE 8080
+
+# Comando para desarrollo con hot reload
+CMD ["air", "-c", ".air.toml"]
