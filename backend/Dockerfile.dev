@@ -1,5 +1,5 @@
 # backend/Dockerfile.dev
-FROM golang:1.23-alpine AS development
+FROM golang:1.24-alpine AS development
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Instalar air para hot reload
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 # Copiar go mod files
 COPY go.mod go.sum ./
