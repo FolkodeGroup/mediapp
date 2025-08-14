@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: mediapp-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - mediapp-network
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev
+
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: mediapp-backend-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    networks:
+      - mediapp-network
+    depends_on:
+      - database
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=mediapp_db
+      - DB_USER=mediapp_user
+      - DB_PASSWORD=mediapp_password_2024
+      - ENV=development
+      - GO_ENV=development
+
+  database:
+    image: postgres:16-alpine
+    container_name: mediapp-database-dev
+    environment:
+      POSTGRES_USER: mediapp_user
+      POSTGRES_PASSWORD: mediapp_password_2024
+      POSTGRES_DB: mediapp_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data_dev:/var/lib/postgresql/data
+    networks:
+      - mediapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediapp_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data_dev:
+
+networks:
+  mediapp-network:
+    driver: bridge
