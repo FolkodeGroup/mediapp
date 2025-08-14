@@ -29,14 +29,13 @@ services:
       - ./backend:/app
     networks:
       - mediapp-network
-    depends_on:
-      - database
     environment:
-      - DB_HOST=database
+      - DB_HOST=192.168.1.36
       - DB_PORT=5432
-      - DB_NAME=mediapp_db
-      - DB_USER=mediapp_user
-      - DB_PASSWORD=mediapp_password_2024
+      - DB_NAME=Mediapp
+      - DB_USER=postgres
+      - DB_PASSWORD=Administracion
+      - DATABASE_URL=postgres://postgres:Administracion@192.168.1.36:5432/Mediapp
       - ENV=development
       - GO_ENV=development
 
