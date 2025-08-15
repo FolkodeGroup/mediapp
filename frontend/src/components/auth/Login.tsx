@@ -33,7 +33,7 @@ const LoginForm = () => {
       autoComplete="off"
       noValidate
     >
-      <div>
+      <div className="form-login">
         {/* Usuario */}
         <div className="space-y-1 div-login">
           <label htmlFor="name" className="block text-sm font-semibold text-white mb-1">
