@@ -7,24 +7,34 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"github.com/joho/godotenv"
 
 	"github.com/FolkodeGroup/mediapp/internal/config"
 	"github.com/FolkodeGroup/mediapp/internal/db"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
-	"github.com/FolkodeGroup/mediapp/internal/handlers" 
+	"github.com/FolkodeGroup/mediapp/internal/auth"
+	"github.com/FolkodeGroup/mediapp/internal/handlers"
+	
 )
 
 func main() {
-	// Cargar variables de entorno
-	config.LoadEnv()
+    // Cargar variables de entorno
+    if err := godotenv.Load(); err != nil {
+        fmt.Println("No se encontró archivo .env, usando variables del sistema")
+    }
+    config.LoadEnv()
 
 	// Inicializar el logger
 	logger.Init()
 	defer logger.Sync()
-	
+
+	// Inicializar autenticación JWT
+    auth.Init(logger.L())
+
 	// Conexión a la base de datos
 	pool, err := db.Connect(logger.L())
 	if err != nil {
@@ -44,12 +54,15 @@ func main() {
 		gin.SetMode(gin.DebugMode)
 	}
 
+    // Crear handlers
+    authHandler := handlers.NewAuthHandler(logger.L())
+
 	// Crear router
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	// Rutas
+	// Rutas públicas
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Bienvenido a la API de MediApp",
@@ -61,6 +74,10 @@ func main() {
 
 	//Usar la función separada en lugar de función anónima
 	router.GET("/health", handlers.HealthCheck)
+
+    // Rutas de autenticación
+    router.POST("/login", authHandler.Login)
+    router.GET("/protected", authHandler.ProtectedEndpoint)
 
 	// Puerto
 	port := os.Getenv("PORT")
