@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css';
 import MainLayout from './components/layout/MainLayout';
 import Login from './components/auth/Login';
+import Register from './components/auth/Register';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 function App() {
@@ -11,7 +12,7 @@ const isAuthenticated = false
     <MainLayout>
       <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Register />} />
         <Route
           path="/dashboard"
           element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}

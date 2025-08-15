@@ -133,10 +133,11 @@ button:focus-visible {
   }
 
   /* Login */
-
+    /* Formulario de Login */
     .form-login {
       text-align: start;
     }
+    
     /* Botón de Login (Modo Claro) */
     button.btn-login{
       width: 7rem;
