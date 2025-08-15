@@ -1,0 +1,8 @@
+# SonarQube properties example
+sonar.projectKey=REEMPLAZA_CON_LA_CLAVE_DEL_PROYECTO
+sonar.projectName=REEMPLAZA_CON_EL_NOMBRE_DEL_PROYECTO
+sonar.host.url=http://localhost:9000
+sonar.login=REEMPLAZA_CON_TU_TOKEN
+sonar.sources=./backend,./frontend/src
+sonar.language=ts
+sonar.sourceEncoding=UTF-8

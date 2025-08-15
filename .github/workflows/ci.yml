@@ -14,6 +14,15 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    # ✅ Agregar esto para que los secrets estén disponibles
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: test_db
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+
     steps:
       # 1️⃣ Clonar repositorio
       - name: Checkout code
