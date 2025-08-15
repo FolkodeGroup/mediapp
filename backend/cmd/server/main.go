@@ -72,13 +72,8 @@ func main() {
 		})
 	})
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "healthy",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"service":   "mediapp-backend",
-		})
-	})
+	//Usar la función separada en lugar de función anónima
+	router.GET("/health", handlers.HealthCheck)
 
     // Rutas de autenticación
     router.POST("/login", authHandler.Login)
