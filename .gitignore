@@ -32,3 +32,8 @@ dist-ssr
 *.sln
 *.sw?
 backend/tmp/
+
+# Archivos generados por swag (Swagger/OpenAPI)
+backend/docs/docs.go
+backend/docs/swagger.json
+backend/docs/swagger.yaml

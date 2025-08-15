@@ -9,7 +9,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// HealthCheck handler para el endpoint de salud
+// HealthCheck godoc
+// @Summary      Health check
+// @Description  Verifica el estado del servicio y la base de datos
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /health [get]
 func HealthCheck(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dbStatus := false
