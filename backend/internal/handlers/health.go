@@ -1,18 +1,28 @@
 package handlers
 
 import (
-    "net/http"
-    "time"
+	"context"
+	"net/http"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // HealthCheck handler para el endpoint de salud
-func HealthCheck(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
-        "status":    "healthy",
-        "timestamp": time.Now().UTC().Format(time.RFC3339),
-        "service":   "mediapp-backend",
-        "version":   "1.0.0",
-    })
+func HealthCheck(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dbStatus := false
+		if pool != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if err := pool.Ping(ctx); err == nil {
+				dbStatus = true
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"db":     dbStatus,
+		})
+	}
 }
