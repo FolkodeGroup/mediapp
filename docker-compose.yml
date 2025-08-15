@@ -49,6 +49,20 @@ services:
       timeout: 5s
       retries: 5
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: mediapp-sonarqube
+    depends_on:
+      - database
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://database:5432/mediapp_db
+      - SONAR_JDBC_USERNAME=mediapp_user
+      - SONAR_JDBC_PASSWORD=mediapp_password_2024
+    ports:
+      - "9000:9000"
+    networks:
+      - mediapp-network
+
 volumes:
   db_data:  # ← Corregido aquí
 
