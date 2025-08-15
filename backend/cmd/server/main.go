@@ -14,6 +14,7 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/config"
 	"github.com/FolkodeGroup/mediapp/internal/db"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
+	"github.com/FolkodeGroup/mediapp/internal/handlers" 
 )
 
 func main() {
@@ -23,6 +24,7 @@ func main() {
 	// Inicializar el logger
 	logger.Init()
 	defer logger.Sync()
+	
 	// Conexión a la base de datos
 	pool, err := db.Connect(logger.L())
 	if err != nil {
@@ -57,13 +59,8 @@ func main() {
 		})
 	})
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "healthy",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"service":   "mediapp-backend",
-		})
-	})
+	//Usar la función separada en lugar de función anónima
+	router.GET("/health", handlers.HealthCheck)
 
 	// Puerto
 	port := os.Getenv("PORT")
