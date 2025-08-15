@@ -1,3 +1,11 @@
+# SonarQube
+sonar-project.properties
+# Archivos generados por SonarQube
+.scannerwork/
+# SonarScanner CLI
+/sonar-scanner-5.0.1.3006-linux/
+/sonar-scanner-cli-5.0.1.3006-linux.zip
+/tools/sonar-scanner/
 # Logs
 logs
 *.log
