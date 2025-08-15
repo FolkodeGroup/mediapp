@@ -2,10 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css';
 import MainLayout from './components/layout/MainLayout';
 import Login from './components/auth/Login';
-import Dashboard from './pages/Dashboard'
-import Patients from './pages/Patients'
+import Dashboard from './pages/Dashboard';
+import Patients from './pages/Patients';
 function App() {
-const isAuthenticated = false 
+const isAuthenticated = false
 
   return (
     <MainLayout>

@@ -1,52 +1,100 @@
-const Login = () => {
+"use client";
+
+import {z} from "zod";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import Input from "../../ui/Input";
+
+// Esquema de validación para login
+const loginSchema = z.object({
+  name: z.string().min(1, "El usuario es obligatorio"),
+  contrasena: z.string().min(1, "La contraseña es obligatoria"),
+});
+
+const LoginForm = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+  });
+
+  const onSubmit = (data: z.infer<typeof loginSchema>) => {
+    console.log("Datos validados:", data);
+    alert("Formulario enviado:\n" + JSON.stringify(data, null, 2));
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            🏥 MediApp
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Iniciar sesión en tu cuenta
-          </p>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="w-full max-w-md bg-[#transparent] rounded-xl shadow-lg p-8 flex flex-col justify-center h-full"
+      autoComplete="off"
+      noValidate
+    >
+      <div>
+        {/* Usuario */}
+        <div className="space-y-1 div-login">
+          <label htmlFor="name" className="block text-sm font-semibold text-white mb-1">
+            Usuario:
+          </label>
+          <Input
+            id="name"
+            {...register("name")}
+            placeholder="Usuario"
+            aria-invalid={!!errors.name}
+            className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
+            autoComplete="username"
+          />
+          <div className="min-h-[20px]">
+            {errors.name && (
+              <p className="text-sm text-red-600">{errors.name.message}</p>
+            )}
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8">
-          <form className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="usuario@ejemplo.com"
-                className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
-              >
-                Entrar
-              </button>
-            </div>
-          </form>
+        {/* Contraseña */}
+        <div className="space-y-1 div-login">
+          <label
+            htmlFor="contrasena"
+            className="block text-sm font-semibold text-white mb-1"
+          >
+            Contraseña:
+          </label>
+          <Input
+            type="password"
+            id="contrasena"
+            {...register("contrasena")}
+            placeholder="Contraseña"
+            aria-invalid={!!errors.contrasena}
+            className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
+            autoComplete="current-password"
+          />
+          <div className="min-h-[20px]">
+            {errors.contrasena && (
+              <p className="text-sm text-red-600">{errors.contrasena.message}</p>
+            )}
+          </div>
+        </div>
+        <div className="">
+          {/* Botón de enviar */}
+          <button
+            type="submit"
+            className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition btn-login"
+          >
+            Iniciar sesión
+          </button>
+          {/* Registrarse  */}
+          <button
+            type="submit"
+            className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition btn-login"
+          >
+            Registrarse
+          </button>
         </div>
       </div>
-    </div>
-  )
-}
+    </form>
+  );
+};
 
-export default Login
+export default LoginForm;
