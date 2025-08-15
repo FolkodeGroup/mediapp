@@ -1,0 +1,51 @@
+info:
+  contact: {}
+paths:
+  /health:
+    get:
+      description: Verifica el estado del servicio y la base de datos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Autenticación de usuario y generación de token JWT
+      parameters:
+      - description: Credenciales de acceso
+        in: body
+        name: loginReq
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login de usuario
+      tags:
+      - auth
+swagger: "2.0"

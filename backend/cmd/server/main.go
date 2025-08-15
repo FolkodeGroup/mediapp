@@ -18,6 +18,10 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/db"
 	"github.com/FolkodeGroup/mediapp/internal/handlers"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
+
+	_ "github.com/FolkodeGroup/mediapp/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -70,6 +74,9 @@ func main() {
 			"version": "1.0.0",
 		})
 	})
+
+	// Documentación Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Health check real con acceso a pool de DB
 	router.GET("/health", handlers.HealthCheck(pool))
