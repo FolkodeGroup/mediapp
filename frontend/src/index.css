@@ -14,11 +14,7 @@
 
 /* Modo claro por defecto */
 :root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
   text-align: start;
-  display: flex;
   justify-content: space-around;
   flex-wrap: wrap;
   align-content: flex-end;
@@ -133,11 +129,37 @@ button:focus-visible {
   }
 
   /* Login */
+    .section-login {
+      width: 70vw;
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+      background-color: white;
+    }
+
+    /* Imagen de Login */
+    .image-login {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      align-self: center;
+      justify-self: center;
+    }
+
     /* Formulario de Login */
     .form-login {
-      text-align: start;
+      text-align: center;
+      justify-content: center;
+      align-content: center;
     }
-    
+
+    .campo-login {
+      color: black;
+      text-align: center;
+      margin-right: 12rem;
+    }
+
     /* Botón de Login (Modo Claro) */
     button.btn-login{
       width: 7rem;
@@ -172,6 +194,6 @@ button:focus-visible {
       color: #374151;
       text-align: center;
       font-size: medium;
-      width: 105%;
+      width: 45%;
       align-self: center;
     }

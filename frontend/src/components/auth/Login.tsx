@@ -29,14 +29,14 @@ const LoginForm = () => {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="w-full max-w-md bg-[#transparent] rounded-xl shadow-lg p-8 flex flex-col justify-center h-full"
+      className="form-login"
       autoComplete="off"
       noValidate
     >
-      <div className="form-login">
+      <div className="">
         {/* Usuario */}
         <div className="space-y-1 div-login">
-          <label htmlFor="name" className="block text-sm font-semibold text-white mb-1">
+          <label htmlFor="name" className="campo-login">
             Usuario:
           </label>
           <Input
@@ -57,7 +57,7 @@ const LoginForm = () => {
         <div className="space-y-1 div-login">
           <label
             htmlFor="contrasena"
-            className="block text-sm font-semibold text-white mb-1"
+            className="campo-login"
           >
             Contraseña:
           </label>
@@ -80,14 +80,14 @@ const LoginForm = () => {
           {/* Botón de enviar */}
           <button
             type="submit"
-            className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition btn-login"
+            className="btn-login"
           >
             Iniciar sesión
           </button>
           {/* Registrarse  */}
           <button
             type="submit"
-            className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition btn-login"
+            className="btn-login"
           >
             Registrarse
           </button>
