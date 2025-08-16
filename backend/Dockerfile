@@ -28,7 +28,7 @@ FROM alpine:3.20.3
 
 # Instalar lo mínimo necesario en la imagen final y Goose
 RUN apk add --no-cache ca-certificates tzdata wget && \
-    wget -O /usr/local/bin/goose https://github.com/pressly/goose/releases/download/v3.24.3/goose_linux_amd64 && \
+    wget -O /usr/local/bin/goose https://github.com/pressly/goose/releases/download/v3.24.3/goose_linux_x86_64 && \
     chmod +x /usr/local/bin/goose
 
 WORKDIR /app
