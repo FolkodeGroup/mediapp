@@ -4,9 +4,16 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "danger";
   size?: "sm" | "md" | "lg";
+  isLoading?: boolean;
 }
 
-export default function Button({ children, variant = "primary", size = "md", ...props }: ButtonProps) {
+export default function Button({
+  children,
+  variant = "primary",
+  size = "md",
+  isLoading = false,
+  ...props
+}: ButtonProps) {
   // Clases base del botón
   let baseClasses = "inline-flex items-center justify-center rounded font-medium transition focus:outline-none";
 
@@ -29,12 +36,23 @@ export default function Button({ children, variant = "primary", size = "md", ...
     baseClasses,
     variantClasses[variant],
     sizeClasses[size],
-    props.className // para permitir personalización extra
+    props.className
   ].join(" ");
 
   return (
-    <button className={className} {...props}>
-      {children}
+    <button
+      className={className}
+      disabled={props.disabled || isLoading}
+      {...props}
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full"></div>
+          <span>Cargando…</span>
+        </div>
+      ) : (
+        children
+      )}
     </button>
   );
 }
