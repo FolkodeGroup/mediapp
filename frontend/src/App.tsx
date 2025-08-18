@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import MainLayout from './components/layout/MainLayout';
-import Login from './components/auth/Login';
+import LoginView from './components/LoginSection/LoginView';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -15,7 +15,7 @@ function PrivateRoute({ children }: { children: ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<LoginView />} />
       <Route
         path="/dashboard"
         element={

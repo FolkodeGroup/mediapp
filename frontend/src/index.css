@@ -14,9 +14,11 @@
 
 /* Modo claro por defecto */
 :root {
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+  text-align: start;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  align-content: flex-end;
+  align-items: center;
 }
 
 /* Modo oscuro */
@@ -113,9 +115,85 @@ button:focus-visible {
     color: rgba(255, 255, 255, 0.87);
     background-color: #242424;
   }
-  
+
   body:not(.light body) {
     background-color: #1a1a1a;
     color: rgba(255, 255, 255, 0.87);
   }
 }
+
+/* Globals.CSS */
+  /* Main Layout */
+  .main-layout {
+    width: fit-content;
+  }
+
+  /* Login */
+    .section-login {
+      width: 70vw;
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+      background-color: white;
+    }
+
+    /* Imagen de Login */
+    .image-login {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      align-self: center;
+      justify-self: center;
+    }
+
+    /* Formulario de Login */
+    .form-login {
+      text-align: center;
+      justify-content: center;
+      align-content: center;
+    }
+
+    .campo-login {
+      color: black;
+      text-align: center;
+      margin-right: 12rem;
+    }
+
+    /* Botón de Login (Modo Claro) */
+    button.btn-login{
+      width: 7rem;
+      margin: 0.2rem;
+      padding: 0.45rem 0.5rem;
+      background-color: #5373c8;
+      color: #ffffff;
+      font-weight:600;
+      font-size: 0.85rem;
+      border-color: #5373c8;
+      border-radius: 0.5rem;
+    }
+
+    button:hover.btn-login {
+      background-color: #4761a8;
+    }
+
+    /* Div de Login */
+    .div-login {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.15rem;
+    }
+
+    /* Placeholder de Login */
+    .ph-login {
+      padding: 0.25rem;
+      border-radius: 0.5rem;
+      border: 3px solid black;
+      background-color: #f9fafb;
+      color: #374151;
+      text-align: center;
+      font-size: medium;
+      width: 45%;
+      align-self: center;
+    }
