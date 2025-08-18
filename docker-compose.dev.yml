@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: mediapp-frontend-dev
     ports:
-      - "3001:3000"
+      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -16,7 +16,7 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-    command: npm run dev
+  command: npm run dev -- --host 0.0.0.0 --port 3000
 
   backend-dev:
     build:
