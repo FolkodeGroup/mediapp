@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Input from "../../ui/Input";
 import { useAuth } from "../../auth/AuthContext";
 import Message from "./Message";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const loginSchema = z.object({
@@ -17,7 +16,6 @@ const loginSchema = z.object({
 });
 
 const LoginForm = () => {
-
   const { login } = useAuth();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -34,9 +32,9 @@ const LoginForm = () => {
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     try {
-      await login(data);
+      await Promise.resolve(login(data));
       setMessage({ type: 'success', text: 'Inicio de sesión exitoso. Redirigiendo...' });
-      setTimeout( () => {
+      setTimeout(() => {
         navigate('/dashboard');
       }, 1000);
     } catch (error: any) {
@@ -48,7 +46,6 @@ const LoginForm = () => {
     }
   };
 
-
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -56,7 +53,6 @@ const LoginForm = () => {
       autoComplete="off"
       noValidate
     >
-      
       <div className="">
         {/* Usuario */}
         <div className="space-y-1 div-login">
@@ -98,30 +94,24 @@ const LoginForm = () => {
             )}
           </div>
         </div>
+
         <div>
-        {message && <Message type={message.type} text={message.text} />}
+          {message && <Message type={message.type} text={message.text} />}
         </div>
+
         <div className="">
-          {/* Botón de enviar */}
-          <button
-            type="submit"
-            className="btn-login"
-          >
-            Iniciar sesión
-          </button>
-          <button type="submit" className="btn-login">
-            Registrarse
-          </button>
-
-          {/* Mensaje de error */}
-          {isError && (
-            <p className="text-sm text-red-600 mt-2">{errorMessage}</p>
-          )}
-
-          {/* Mensaje de éxito */}
-          {isSuccess && (
-            <p className="text-sm text-green-600 mt-2">{successMessage}</p>
-          )}
+          <div className="">
+            {/* Botón de enviar */}
+            <button
+              type="submit"
+              className="btn-login"
+            >
+              Iniciar sesión
+            </button>
+            <button type="button" className="btn-login" onClick={() => navigate('/register')}>
+              Registrarse
+            </button>
+          </div>
         </div>
       </div>
     </form>

@@ -31,7 +31,6 @@
   ],
   "author": "MediApp Team",
   "license": "MIT",
-  ,
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "axios": "^1.11.0",
