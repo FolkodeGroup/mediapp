@@ -38,16 +38,20 @@ services:
       POSTGRES_PASSWORD: mediapp_password_2024
       POSTGRES_DB: mediapp_db
     ports:
-      - "${DB_PORT:-5432}:5432"
-    volumes:
-      db_data_dev: {}
+      - "5432:5432"
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: mediapp-vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
     networks:
       - mediapp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mediapp_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   sonarqube:
     image: sonarqube:community

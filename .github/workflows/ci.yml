@@ -13,10 +13,19 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      vault:
+        image: hashicorp/vault:1.15
+        ports:
+          - 8200:8200
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+        #command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200 # Comentado para command del servicio Vault en el workflow de CI para máxima compatibilidad con GitHub Actions
 
-    # ✅ Agregar esto para que los secrets estén disponibles
     env:
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       DB_HOST: localhost
       DB_PORT: 5432
       DB_NAME: test_db
@@ -42,14 +51,69 @@ jobs:
         working-directory: backend/cmd/server
         run: go build -v .
 
-      - name: Test backend with coverage
+
+      - name: Test backend with coverage (unitarios)
         id: backend_tests
         working-directory: backend
         run: |
-          go test ./... -v -coverprofile=coverage.out
+          go test ./... -v -coverprofile=coverage.out -tags='!integration'
           go tool cover -func=coverage.out | tee coverage.txt
           COV=$(grep total: coverage.txt | awk '{print $3}')
           echo "backend_coverage=$COV" >> $GITHUB_ENV
+
+      - name: Instalar Vault CLI
+        run: |
+          # Instalar Vault CLI usando el método oficial simplificado
+          wget -O vault.zip https://releases.hashicorp.com/vault/1.15.6/vault_1.15.6_linux_amd64.zip
+          unzip vault.zip
+          sudo mv vault /usr/local/bin/
+          rm vault.zip
+          # Verificar instalación
+          vault version
+
+      - name: Esperar a que Vault esté listo
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:8200/v1/sys/health | grep '"initialized":true'; then
+              echo "Vault está listo" && exit 0
+            fi
+            sleep 2
+          done
+          echo "Vault no respondió a tiempo" && exit 1
+
+      - name: Verificar conectividad con Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          echo "Verificando versión de Vault..."
+          vault version
+          echo "Verificando status de Vault..."
+          vault status
+
+      - name: Crear secreto en Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          vault kv put secret/mediapp JWT_SECRET_KEY=supersecreto123
+
+      - name: Validar creación del secreto en Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          if ! vault kv get secret/mediapp; then
+            echo "El secreto no se creó correctamente en Vault" && exit 1
+          fi
+
+      - name: Depurar secretos en Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          echo "Listando secretos en Vault:"
+          vault kv list secret/
+
+      - name: Ejecutar tests de integración (Vault)
+        run: go test -tags=integration ./internal/config
+        working-directory: ./backend
 
       # 3️⃣ FRONTEND (Node.js)
       - name: Setup Node.js
@@ -97,8 +161,8 @@ jobs:
                      {\"name\": \"Repositorio\", \"value\": \"${{ github.repository }}\"},
                      {\"name\": \"Branch\", \"value\": \"${{ github.ref_name }}\"},
                      {\"name\": \"Autor\", \"value\": \"${{ github.actor }}\"},
-                     {\"name\": \"Cobertura Backend\", \"value\": \"${{ env.backend_coverage }}\"},
-                     {\"name\": \"Cobertura Frontend\", \"value\": \"${{ env.frontend_coverage }}\"}
+                     {\"name\": \"Cobertura Backend\", \"value\": \"$backend_coverage\"},
+                     {\"name\": \"Cobertura Frontend\", \"value\": \"$frontend_coverage\"}
                    ],
                    \"footer\": {\"text\": \"GitHub Actions\"}
                  }]

@@ -58,7 +58,8 @@ func main() {
 	}
 
 	// Crear handlers
-	authHandler := handlers.NewAuthHandler(logger.L())
+	authHandler := handlers.NewAuthHandler(logger.L(), pool)
+	pacienteHandler := handlers.NewPacienteHandler(pool, logger.L())
 
 	// Crear router
 	router := gin.New()
@@ -68,10 +69,11 @@ func main() {
 	// Rutas públicas
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Bienvenido a la API de MediApp",
-			"status":  "Backend Go funcionando correctamente",
-			"service": "mediapp-backend",
-			"version": "1.0.0",
+			"message":  "Bienvenido a la API de MediApp",
+			"status":   "Backend Go funcionando correctamente",
+			"service":  "mediapp-backend",
+			"version":  "1.0.0",
+			"database": "Supabase (PostgreSQL)",
 		})
 	})
 
@@ -82,8 +84,22 @@ func main() {
 	router.GET("/health", handlers.HealthCheck(pool))
 
 	// Rutas de autenticación
+	router.POST("/register", authHandler.Register)
 	router.POST("/login", authHandler.Login)
 	router.GET("/protected", authHandler.ProtectedEndpoint)
+
+	// API v1 routes
+	v1 := router.Group("/api/v1")
+	{
+		// Rutas de pacientes
+		v1.GET("/pacientes", pacienteHandler.GetPacientes)
+		v1.GET("/pacientes/:id", pacienteHandler.GetPaciente)
+
+		// Rutas de prueba y diagnóstico
+		v1.GET("/test/supabase", pacienteHandler.TestSupabaseConnection)
+		v1.GET("/inspect/tables", pacienteHandler.InspectTables)
+		v1.GET("/connect/all-tables", pacienteHandler.ConnectAllTables)
+	}
 
 	// Puerto
 	port := os.Getenv("PORT")

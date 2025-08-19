@@ -1,4 +1,5 @@
-version: '3.8'
+# Docker Compose v2.39+ configuration for MediApp Development Environment
+# Configuración para entorno de desarrollo colaborativo con Supabase
 
 services:
   frontend-dev:
@@ -7,16 +8,22 @@ services:
       dockerfile: Dockerfile.dev
     container_name: mediapp-frontend-dev
     ports:
-      - "3001:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    networks:
-      - mediapp-network
     environment:
       - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-    command: npm run dev
+      - VITE_API_URL=http://localhost:${APP_PORT:-8080}
+    networks:
+      - mediapp-network
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: rebuild
+          path: ./frontend/package.json
 
   backend-dev:
     build:
@@ -24,44 +31,48 @@ services:
       dockerfile: Dockerfile.dev
     container_name: mediapp-backend-dev
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     volumes:
       - ./backend:/app
-    networks:
-      - mediapp-network
     environment:
-      # Variables de entorno corregidas
+      # Base configuration
+      - APP_ENV=${APP_ENV:-development}
+      - APP_PORT=${APP_PORT:-8080}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      
+      # Database configuration (Supabase)
       - DATABASE_URL=${DATABASE_URL}
+      
+      # JWT configuration
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - ENV=development
-      - GO_ENV=development
-    depends_on:
-      database:
-        condition: service_healthy
-
-  database:
-    image: postgres:16-alpine
-    container_name: mediapp-database-dev
-    environment:
-      POSTGRES_USER: mediapp_user
-      POSTGRES_PASSWORD: mediapp_password_2024
-      POSTGRES_DB: mediapp_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data_dev:/var/lib/postgresql/data
+      
+      # Logging configuration
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      
+      # API configuration
+      - API_VERSION=${API_VERSION:-v1}
+      - API_BASE_PATH=${API_BASE_PATH:-/api/v1}
+    env_file:
+      - .env
     networks:
       - mediapp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mediapp_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  db_data_dev:
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - tmp/
+            - vendor/
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
 
 networks:
   mediapp-network:
     driver: bridge
+    name: mediapp_mediapp-network
