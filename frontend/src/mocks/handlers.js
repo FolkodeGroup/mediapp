@@ -1,4 +1,5 @@
 import { http } from 'msw';
+import { HttpResponse } from 'msw';
 
 const mockUser = {
   id: 1,
@@ -8,25 +9,22 @@ const mockUser = {
 };
 
 export const handlers = [
-  http.post('/api/auth/login', (req, res, ctx) => {
-    const { username, password } = req.body;
+  // Corrige el manejador para que sea asíncrono y use await req.json()
+  http.post('/api/auth/login', async ({ request }) => {
+    // 1. Usa "await" para parsear el cuerpo de la solicitud como JSON
+    const { username, password } = await request.json();
 
     if (username === 'usuario' && password === '123') {
-      return res(
-        ctx.status(200),
-        ctx.json({
-          user: mockUser,
-          token: mockUser.token,
-          message: 'Login exitoso',
-        })
-      );
+      // 2. Usa HttpResponse para construir la respuesta (práctica recomendada en MSW v2)
+      return HttpResponse.json({
+        user: mockUser,
+        token: mockUser.token,
+        message: 'Login exitoso',
+      }, { status: 200 });
     }
-
-    return res(
-      ctx.status(401),
-      ctx.json({
-        message: 'Credenciales incorrectas',
-      })
+    return HttpResponse.json(
+      { message: 'Credenciales incorrectas' },
+      { status: 401 }
     );
   }),
 

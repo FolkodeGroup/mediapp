@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,18 +6,20 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Input from "../../ui/Input";
+import { useAuth } from "../../auth/AuthContext";
+import Message from "./Message";
+import { useNavigate } from "react-router-dom";
 
-// Esquema de validación para login
 const loginSchema = z.object({
-  name: z.string().min(1, "El usuario es obligatorio"),
-  contrasena: z.string().min(1, "La contraseña es obligatoria"),
+  username: z.string().min(1, "El usuario es obligatorio"),
+  password: z.string().min(1, "La contraseña es obligatoria"),
 });
 
 const LoginForm = () => {
-  const [isError, setIsError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const { login } = useAuth();
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const navigate = useNavigate();
 
   const {
     register,
@@ -28,25 +31,18 @@ const LoginForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
-    setIsError(false);
-    setErrorMessage("");
-    setIsSuccess(false);
-    setSuccessMessage("");
-
     try {
-      // Simulación de login exitoso
-      const loginExitoso = true;
-
-      if (!loginExitoso) {
-        throw new Error("Credenciales inválidas");
-      }
-
-      setIsSuccess(true);
-      setSuccessMessage("Inicio de sesión exitoso");
-      console.log("Datos validados:", data);
+      await Promise.resolve(login(data));
+      setMessage({ type: 'success', text: 'Inicio de sesión exitoso. Redirigiendo...' });
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error: any) {
-      setIsError(true);
-      setErrorMessage(error.message || "Error inesperado");
+      let errorMsg = 'Error durante el login.';
+      if (error?.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      }
+      setMessage({ type: 'error', text: errorMsg });
     }
   };
 
@@ -65,15 +61,15 @@ const LoginForm = () => {
           </label>
           <Input
             id="name"
-            {...register("name")}
+            {...register("username")}
             placeholder="Usuario"
-            aria-invalid={!!errors.name}
+            aria-invalid={!!errors.username}
             className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
             autoComplete="username"
           />
           <div className="min-h-[20px]">
-            {errors.name && (
-              <p className="text-sm text-red-600">{errors.name.message}</p>
+            {errors.username && (
+              <p className="text-sm text-red-600">{errors.username.message}</p>
             )}
           </div>
         </div>
@@ -86,37 +82,36 @@ const LoginForm = () => {
           <Input
             type="password"
             id="contrasena"
-            {...register("contrasena")}
+            {...register("password")}
             placeholder="Contraseña"
-            aria-invalid={!!errors.contrasena}
+            aria-invalid={!!errors.password}
             className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
             autoComplete="current-password"
           />
           <div className="min-h-[20px]">
-            {errors.contrasena && (
-              <p className="text-sm text-red-600">{errors.contrasena.message}</p>
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password.message}</p>
             )}
           </div>
         </div>
 
-        {/* Botones */}
-        <div className="space-y-2 mt-4">
-          <button type="submit" className="btn-login">
-            Iniciar sesión
-          </button>
-          <button type="submit" className="btn-login">
-            Registrarse
-          </button>
+        <div>
+          {message && <Message type={message.type} text={message.text} />}
+        </div>
 
-          {/* Mensaje de error */}
-          {isError && (
-            <p className="text-sm text-red-600 mt-2">{errorMessage}</p>
-          )}
-
-          {/* Mensaje de éxito */}
-          {isSuccess && (
-            <p className="text-sm text-green-600 mt-2">{successMessage}</p>
-          )}
+        <div className="">
+          <div className="">
+            {/* Botón de enviar */}
+            <button
+              type="submit"
+              className="btn-login"
+            >
+              Iniciar sesión
+            </button>
+            <button type="button" className="btn-login" onClick={() => navigate('/register')}>
+              Registrarse
+            </button>
+          </div>
         </div>
       </div>
     </form>

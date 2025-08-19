@@ -22,13 +22,14 @@
   "author": "MediApp Team",
   "license": "MIT",
   "dependencies": {
+    "@hookform/resolvers": "^5.2.1",
+    "axios": "^1.11.0",
     "msw": "^2.10.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.1.1",
     "react-hook-form": "^7.62.0",
-    "zod": "^4.0.17",
-    "@hookform/resolvers": "^5.2.1"
+    "react-router-dom": "^7.1.1",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/react": "^19.1.1",
