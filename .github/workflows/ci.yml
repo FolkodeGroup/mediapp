@@ -63,10 +63,13 @@ jobs:
 
       - name: Instalar Vault CLI
         run: |
-          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt update
-          sudo apt install vault
+          # Instalar Vault CLI usando el método oficial simplificado
+          wget -O vault.zip https://releases.hashicorp.com/vault/1.15.6/vault_1.15.6_linux_amd64.zip
+          unzip vault.zip
+          sudo mv vault /usr/local/bin/
+          rm vault.zip
+          # Verificar instalación
+          vault version
 
       - name: Esperar a que Vault esté listo
         run: |
@@ -77,6 +80,15 @@ jobs:
             sleep 2
           done
           echo "Vault no respondió a tiempo" && exit 1
+
+      - name: Verificar conectividad con Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          echo "Verificando versión de Vault..."
+          vault version
+          echo "Verificando status de Vault..."
+          vault status
 
       - name: Crear secreto en Vault
         run: |
