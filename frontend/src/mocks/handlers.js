@@ -29,7 +29,7 @@ export const handlers = [
   }),
 
   // Mock GET /patients
-  http.get('/api/patients', (req, res, ctx) => {
+  http.get('/api/patients', () => {
     // Estos datos deben estar sincronizados con el tipo Patient de TypeScript
     const patients = [
       {
@@ -53,9 +53,6 @@ export const handlers = [
         email: 'ana.garcia@example.com',
       },
     ];
-    return res(
-      ctx.status(200),
-      ctx.json({ patients })
-    );
+    return HttpResponse.json({ patients }, { status: 200 });
   }),
 ];
