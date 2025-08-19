@@ -170,7 +170,7 @@ func (h *PacienteHandler) TestSupabaseConnection(c *gin.Context) {
 		"auditorias",
 		"consultorios",
 		"datos_personales",
-		"historia_clinica_version",  // Corregido: singular
+		"historia_clinica_version", // Corregido: singular
 		"historias_clinicas",
 		"pacientes",
 		"permisos",
@@ -229,28 +229,28 @@ func (h *PacienteHandler) InspectTables(c *gin.Context) {
 
 	// Obtener tabla a inspeccionar desde query parameter
 	tableName := c.DefaultQuery("table", "pacientes")
-	
+
 	// Lista de tablas permitidas por seguridad (nombres exactos de Supabase)
 	allowedTables := map[string]bool{
-		"auditorias":                  true,
-		"consultorios":                true,
-		"datos_personales":            true,
-		"historia_clinica_version":    true,  // Corregido: singular
-		"historias_clinicas":          true,
-		"pacientes":                   true,
-		"permisos":                    true,
-		"recetas_medicas":             true,
-		"rol_permiso":                 true,
-		"roles":                       true,
-		"turnos":                      true,
-		"usuarios":                    true,
+		"auditorias":               true,
+		"consultorios":             true,
+		"datos_personales":         true,
+		"historia_clinica_version": true, // Corregido: singular
+		"historias_clinicas":       true,
+		"pacientes":                true,
+		"permisos":                 true,
+		"recetas_medicas":          true,
+		"rol_permiso":              true,
+		"roles":                    true,
+		"turnos":                   true,
+		"usuarios":                 true,
 	}
 
 	if !allowedTables[tableName] {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Tabla no permitida",
 			"allowed_tables": []string{
-				"auditorias", "consultorios", "datos_personales", 
+				"auditorias", "consultorios", "datos_personales",
 				"historia_clinica_version", "historias_clinicas", "pacientes",
 				"permisos", "recetas_medicas", "rol_permiso", "roles", "turnos", "usuarios",
 			},
@@ -268,7 +268,7 @@ func (h *PacienteHandler) InspectTables(c *gin.Context) {
 
 	rows, err := h.pool.Query(ctx, query, tableName)
 	if err != nil {
-		h.logger.Error("Error al consultar estructura de tabla", 
+		h.logger.Error("Error al consultar estructura de tabla",
 			zap.String("table", tableName), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error interno del servidor",
@@ -322,9 +322,9 @@ func (h *PacienteHandler) ConnectAllTables(c *gin.Context) {
 	// Lista completa de tablas en Supabase (nombres exactos)
 	tables := []string{
 		"auditorias",
-		"consultorios", 
+		"consultorios",
 		"datos_personales",
-		"historia_clinica_version",  // Corregido: singular, no plural
+		"historia_clinica_version", // Corregido: singular, no plural
 		"historias_clinicas",
 		"pacientes",
 		"permisos",
@@ -341,13 +341,13 @@ func (h *PacienteHandler) ConnectAllTables(c *gin.Context) {
 
 	for _, tableName := range tables {
 		tableData := make(map[string]interface{})
-		
+
 		// 1. Contar registros
 		var count int
 		countQuery := "SELECT COUNT(*) FROM " + tableName
 		err := h.pool.QueryRow(ctx, countQuery).Scan(&count)
 		if err != nil {
-			h.logger.Warn("Error al consultar tabla", 
+			h.logger.Warn("Error al consultar tabla",
 				zap.String("table", tableName), zap.Error(err))
 			tableData["status"] = "error"
 			tableData["error"] = err.Error()
@@ -365,10 +365,10 @@ func (h *PacienteHandler) ConnectAllTables(c *gin.Context) {
 				WHERE table_name = $1
 				ORDER BY ordinal_position
 			`
-			
+
 			rows, err := h.pool.Query(ctx, columnsQuery, tableName)
 			if err != nil {
-				h.logger.Warn("Error al consultar estructura", 
+				h.logger.Warn("Error al consultar estructura",
 					zap.String("table", tableName), zap.Error(err))
 				tableData["columns_error"] = err.Error()
 			} else {
@@ -441,15 +441,15 @@ func (h *PacienteHandler) ConnectAllTables(c *gin.Context) {
 
 	// Resumen final
 	summary := map[string]interface{}{
-		"status":                "success",
-		"total_tables":          len(tables),
+		"status":                 "success",
+		"total_tables":           len(tables),
 		"successful_connections": successfulConnections,
-		"failed_connections":    failedConnections,
-		"connection_rate":       float64(successfulConnections) / float64(len(tables)) * 100,
-		"database":              "Supabase PostgreSQL",
-		"project":               "mediapp-db",
-		"timestamp":             time.Now(),
-		"pool_stats":            h.pool.Stat(),
+		"failed_connections":     failedConnections,
+		"connection_rate":        float64(successfulConnections) / float64(len(tables)) * 100,
+		"database":               "Supabase PostgreSQL",
+		"project":                "mediapp-db",
+		"timestamp":              time.Now(),
+		"pool_stats":             h.pool.Stat(),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
