@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FolkodeGroup/mediapp/internal/auth"
+	"github.com/FolkodeGroup/mediapp/internal/logger"
 	"github.com/FolkodeGroup/mediapp/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -39,6 +40,9 @@ func NewAuthHandler(logger *zap.Logger, db *pgxpool.Pool) *AuthHandler {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
+
+	log := logger.FromContext(c.Request.Context())
+	log.Info("Intento de login", zap.String("email", c.PostForm("email")))
 	var loginReq struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
