@@ -1,3 +1,25 @@
+# 🐳 Actualización de Docker Compose
+
+### Linux
+
+1. Descargar la última versión:
+   ```bash
+   sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   ```
+2. Dar permisos de ejecución:
+   ```bash
+   sudo chmod +x /usr/local/bin/docker-compose
+   ```
+3. Verificar la versión instalada:
+   ```bash
+   docker-compose --version
+   ```
+
+### Windows
+
+- Si usas **Docker Desktop** (recomendado), Docker Compose ya viene integrado y se actualiza automáticamente con Docker Desktop.
+- Si usas WSL2, ejecuta los comandos de Linux dentro de tu terminal WSL.
+
 # 🏥 MediApp - Sistema de Gestión Médica
 
 ## 🚀 Cómo ejecutar en modo desarrollo
