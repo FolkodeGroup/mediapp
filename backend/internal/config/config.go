@@ -14,6 +14,7 @@ func LoadSecretsFromVault() {
 	// configuradas en docker-compose.yml
 	config := api.DefaultConfig()
 	config.Address = os.Getenv("VAULT_ADDR")
+	log.Printf("Conectando a Vault en: %s", config.Address)
 
 	client, err := api.NewClient(config)
 	if err != nil {
@@ -21,6 +22,7 @@ func LoadSecretsFromVault() {
 	}
 
 	client.SetToken(os.Getenv("VAULT_TOKEN"))
+	log.Println("Token de Vault configurado correctamente.")
 
 	// Lee el secreto de la ruta que definimos en Vault
 	secret, err := client.Logical().Read("secret/data/mediapp")
@@ -28,12 +30,22 @@ func LoadSecretsFromVault() {
 		log.Fatalf("Error leyendo secreto de Vault: %v", err)
 	}
 
-	if secret != nil && secret.Data["data"] != nil {
-		data := secret.Data["data"].(map[string]interface{})
-		if jwtSecret, ok := data["JWT_SECRET_KEY"].(string); ok {
-			os.Setenv("JWT_SECRET_KEY", jwtSecret)
-			log.Println("Secreto JWT_SECRET_KEY cargado desde Vault.")
-		}
+	if secret == nil {
+		log.Println("No se encontró ningún secreto en la ruta especificada.")
+		return
+	}
+
+	if secret.Data["data"] == nil {
+		log.Println("La clave 'data' no está presente en el secreto.")
+		return
+	}
+
+	data := secret.Data["data"].(map[string]interface{})
+	if jwtSecret, ok := data["JWT_SECRET_KEY"].(string); ok {
+		os.Setenv("JWT_SECRET_KEY", jwtSecret)
+		log.Println("Secreto JWT_SECRET_KEY cargado desde Vault.")
+	} else {
+		log.Println("JWT_SECRET_KEY no encontrado en los datos del secreto.")
 	}
 }
 
