@@ -77,6 +77,21 @@ jobs:
           export VAULT_TOKEN='root'
           vault kv put secret/mediapp JWT_SECRET_KEY=supersecreto123
 
+      - name: Validar creación del secreto en Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          if ! vault kv get secret/mediapp; then
+            echo "El secreto no se creó correctamente en Vault" && exit 1
+          fi
+
+      - name: Depurar secretos en Vault
+        run: |
+          export VAULT_ADDR='http://localhost:8200'
+          export VAULT_TOKEN='root'
+          echo "Listando secretos en Vault:"
+          vault kv list secret/
+
       - name: Ejecutar tests de integración (Vault)
         run: go test -tags=integration ./internal/config
         working-directory: ./backend
