@@ -1,8 +1,9 @@
 "use client";
 
-import {z} from "zod";
-import {useForm} from "react-hook-form";
-import {zodResolver} from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Input from "../../ui/Input";
 
 // Esquema de validación para login
@@ -12,6 +13,11 @@ const loginSchema = z.object({
 });
 
 const LoginForm = () => {
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -21,9 +27,27 @@ const LoginForm = () => {
     mode: "onChange",
   });
 
-  const onSubmit = (data: z.infer<typeof loginSchema>) => {
-    console.log("Datos validados:", data);
-    alert("Formulario enviado:\n" + JSON.stringify(data, null, 2));
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+    setIsError(false);
+    setErrorMessage("");
+    setIsSuccess(false);
+    setSuccessMessage("");
+
+    try {
+      // Simulación de login exitoso
+      const loginExitoso = true;
+
+      if (!loginExitoso) {
+        throw new Error("Credenciales inválidas");
+      }
+
+      setIsSuccess(true);
+      setSuccessMessage("Inicio de sesión exitoso");
+      console.log("Datos validados:", data);
+    } catch (error: any) {
+      setIsError(true);
+      setErrorMessage(error.message || "Error inesperado");
+    }
   };
 
   return (
@@ -53,12 +77,10 @@ const LoginForm = () => {
             )}
           </div>
         </div>
+
         {/* Contraseña */}
         <div className="space-y-1 div-login">
-          <label
-            htmlFor="contrasena"
-            className="campo-login"
-          >
+          <label htmlFor="contrasena" className="campo-login">
             Contraseña:
           </label>
           <Input
@@ -76,21 +98,25 @@ const LoginForm = () => {
             )}
           </div>
         </div>
-        <div className="">
-          {/* Botón de enviar */}
-          <button
-            type="submit"
-            className="btn-login"
-          >
+
+        {/* Botones */}
+        <div className="space-y-2 mt-4">
+          <button type="submit" className="btn-login">
             Iniciar sesión
           </button>
-          {/* Registrarse  */}
-          <button
-            type="submit"
-            className="btn-login"
-          >
+          <button type="submit" className="btn-login">
             Registrarse
           </button>
+
+          {/* Mensaje de error */}
+          {isError && (
+            <p className="text-sm text-red-600 mt-2">{errorMessage}</p>
+          )}
+
+          {/* Mensaje de éxito */}
+          {isSuccess && (
+            <p className="text-sm text-green-600 mt-2">{successMessage}</p>
+          )}
         </div>
       </div>
     </form>
