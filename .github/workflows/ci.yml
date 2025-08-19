@@ -26,7 +26,6 @@ jobs:
         #command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200 # Comentado para command del servicio Vault en el workflow de CI para máxima compatibilidad con GitHub Actions
 
     env:
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       DB_HOST: localhost
       DB_PORT: 5432
       DB_NAME: test_db
