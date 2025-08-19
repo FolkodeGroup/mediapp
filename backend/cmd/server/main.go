@@ -97,6 +97,7 @@ func main() {
 		// Rutas de prueba y diagnóstico
 		v1.GET("/test/supabase", pacienteHandler.TestSupabaseConnection)
 		v1.GET("/inspect/tables", pacienteHandler.InspectTables)
+		v1.GET("/connect/all-tables", pacienteHandler.ConnectAllTables)
 	}
 
 	// Puerto
