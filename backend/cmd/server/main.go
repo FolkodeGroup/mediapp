@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Crear handlers
-	authHandler := handlers.NewAuthHandler(logger.L())
+	authHandler := handlers.NewAuthHandler(logger.L(), pool)
 	pacienteHandler := handlers.NewPacienteHandler(pool, logger.L())
 
 	// Crear router
@@ -84,6 +84,7 @@ func main() {
 	router.GET("/health", handlers.HealthCheck(pool))
 
 	// Rutas de autenticación
+	router.POST("/register", authHandler.Register)
 	router.POST("/login", authHandler.Login)
 	router.GET("/protected", authHandler.ProtectedEndpoint)
 
