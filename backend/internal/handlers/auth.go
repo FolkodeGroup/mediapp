@@ -68,10 +68,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Verificar la contraseña
-	if err := security.CheckPassword(passwordHash, loginReq.Password); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
-		return
-	}
+	if !security.CheckPasswordHash(loginReq.Password, passwordHash) {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
+    return
+}
 
 	// Generar token JWT
 	token, err := auth.GenerateToken(user.ID.String(), user.RolID)
