@@ -15,9 +15,12 @@ const loginSchema = z.object({
   password: z.string().min(1, "La contraseña es obligatoria"),
 });
 
+
 const LoginForm = () => {
   const { login } = useAuth();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const navigate = useNavigate();
 
@@ -31,6 +34,8 @@ const LoginForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+    setIsLoading(true);
+    setIsError(false);
     try {
       await Promise.resolve(login(data));
       setMessage({ type: 'success', text: 'Inicio de sesión exitoso. Redirigiendo...' });
@@ -43,6 +48,9 @@ const LoginForm = () => {
         errorMsg = error.response.data.message;
       }
       setMessage({ type: 'error', text: errorMsg });
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -105,8 +113,9 @@ const LoginForm = () => {
             <button
               type="submit"
               className="btn-login"
+              disabled={isLoading}
             >
-              Iniciar sesión
+              {isLoading ? 'Cargando...' : 'Iniciar sesión'}
             </button>
             <button type="button" className="btn-login" onClick={() => navigate('/register')}>
               Registrarse
