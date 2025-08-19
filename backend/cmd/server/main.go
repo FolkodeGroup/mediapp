@@ -18,6 +18,7 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/db"
 	"github.com/FolkodeGroup/mediapp/internal/handlers"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
+	"github.com/FolkodeGroup/mediapp/internal/middleware"
 
 	_ "github.com/FolkodeGroup/mediapp/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -64,6 +65,12 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+
+
+	// Middlewares
+	router.Use(middleware.RequestIDMiddleware(logger.L()))
+	router.Use(middleware.LoggingMiddleware())
+	router.Use(gin.Recovery()) // Puedes mantener este o mejorarlo también
 
 	// Rutas públicas
 	router.GET("/", func(c *gin.Context) {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FolkodeGroup/mediapp/internal/auth"
+	"github.com/FolkodeGroup/mediapp/internal/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -30,6 +31,9 @@ func NewAuthHandler(logger *zap.Logger) *AuthHandler {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
+
+	log := logger.FromContext(c.Request.Context())
+	log.Info("Intento de login", zap.String("email", c.PostForm("email")))
 	// En una implementación real, aquí validarías credenciales contra la DB
 	var loginReq struct {
 		Username string `json:"username" binding:"required"`
