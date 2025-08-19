@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/FolkodeGroup/mediapp/internal/security"
 )
 
 type AuthHandler struct {
@@ -68,7 +68,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Verificar la contraseña
-	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(loginReq.Password)); err != nil {
+	if err := security.CheckPassword(passwordHash, loginReq.Password); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
 		return
 	}
@@ -130,7 +130,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	userID := uuid.New()
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	hashedPassword, err := security.HashPassword(input.Password)
 	if err != nil {
 		h.logger.Error("Error al hashear la contraseña", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
