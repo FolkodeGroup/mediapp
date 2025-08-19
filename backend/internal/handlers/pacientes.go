@@ -165,12 +165,12 @@ func (h *PacienteHandler) TestSupabaseConnection(c *gin.Context) {
 		return
 	}
 
-	// Contar registros en todas las tablas de Supabase
+	// Contar registros en todas las tablas de Supabase (nombres exactos)
 	tables := []string{
 		"auditorias",
 		"consultorios",
 		"datos_personales",
-		"historia_clinica_versiones",
+		"historia_clinica_version",  // Corregido: singular
 		"historias_clinicas",
 		"pacientes",
 		"permisos",
@@ -230,20 +230,20 @@ func (h *PacienteHandler) InspectTables(c *gin.Context) {
 	// Obtener tabla a inspeccionar desde query parameter
 	tableName := c.DefaultQuery("table", "pacientes")
 	
-	// Lista de tablas permitidas por seguridad
+	// Lista de tablas permitidas por seguridad (nombres exactos de Supabase)
 	allowedTables := map[string]bool{
-		"auditorias":                   true,
-		"consultorios":                 true,
-		"datos_personales":             true,
-		"historia_clinica_versiones":   true,
-		"historias_clinicas":           true,
-		"pacientes":                    true,
-		"permisos":                     true,
-		"recetas_medicas":              true,
-		"rol_permiso":                  true,
-		"roles":                        true,
-		"turnos":                       true,
-		"usuarios":                     true,
+		"auditorias":                  true,
+		"consultorios":                true,
+		"datos_personales":            true,
+		"historia_clinica_version":    true,  // Corregido: singular
+		"historias_clinicas":          true,
+		"pacientes":                   true,
+		"permisos":                    true,
+		"recetas_medicas":             true,
+		"rol_permiso":                 true,
+		"roles":                       true,
+		"turnos":                      true,
+		"usuarios":                    true,
 	}
 
 	if !allowedTables[tableName] {
@@ -251,7 +251,7 @@ func (h *PacienteHandler) InspectTables(c *gin.Context) {
 			"error": "Tabla no permitida",
 			"allowed_tables": []string{
 				"auditorias", "consultorios", "datos_personales", 
-				"historia_clinica_versiones", "historias_clinicas", "pacientes",
+				"historia_clinica_version", "historias_clinicas", "pacientes",
 				"permisos", "recetas_medicas", "rol_permiso", "roles", "turnos", "usuarios",
 			},
 		})
@@ -319,12 +319,12 @@ func (h *PacienteHandler) ConnectAllTables(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Lista completa de tablas en Supabase
+	// Lista completa de tablas en Supabase (nombres exactos)
 	tables := []string{
 		"auditorias",
 		"consultorios", 
 		"datos_personales",
-		"historia_clinica_versiones",
+		"historia_clinica_version",  // Corregido: singular, no plural
 		"historias_clinicas",
 		"pacientes",
 		"permisos",
