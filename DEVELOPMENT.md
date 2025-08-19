@@ -1,8 +1,6 @@
-# 🏥 MediApp - Sistema de Gestión Médica
+# 🏥 MediApp - Guía de Desarrollo Colaborativo
 
-## � Guía de Desarrollo Actualizada (Docker Compose v2.39+)
-
-### ⚠️ Importante: Usamos Docker Compose moderno
+## ⚠️ Importante: Usamos Docker Compose moderno
 Este proyecto usa **Docker Compose v2.39+** con sintaxis moderna. No necesitas instalar `docker-compose` por separado si tienes Docker Desktop o Docker Engine reciente.
 
 ### 🔧 Verificar tu versión de Docker Compose
@@ -14,30 +12,46 @@ docker compose version
 # Si usas Linux server, asegúrate de tener Docker Engine reciente
 ```
 
+---
+
 ## 🚀 Cómo ejecutar en modo desarrollo
 
 ### Opción 1: Desarrollo con Docker (Recomendado) 🐳
+1. **Levantar todo el stack de desarrollo**:
+   ```bash
+   docker compose -f docker-compose.dev.yml up --build
+   ```
 
-```bash
-# Levantar todo el stack de desarrollo
-docker compose -f docker-compose.dev.yml up --build
+2. **Levantar en segundo plano**:
+   ```bash
+   docker compose -f docker-compose.dev.yml up --build -d
+   ```
 
-# O en segundo plano
-docker compose -f docker-compose.dev.yml up --build -d
+3. **Parar servicios**:
+   ```bash
+   docker compose -f docker-compose.dev.yml down
+   ```
 
-# Para parar
-docker compose -f docker-compose.dev.yml down
-```
+4. **Rebuild completo**:
+   ```bash
+   docker compose -f docker-compose.dev.yml up --build --force-recreate
+   ```
+
+5. **Verificar logs**:
+   ```bash
+   docker compose -f docker-compose.dev.yml logs -f
+   ```
+
+---
 
 ### Opción 2: Desarrollo Local
-
 1. **Frontend**:
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
-   El frontend estará disponible en: http://localhost:3000
+   El frontend estará disponible en: [http://localhost:3000](http://localhost:3000)
 
 2. **Backend** (en otra terminal):
    ```bash
@@ -45,225 +59,141 @@ docker compose -f docker-compose.dev.yml down
    go mod download
    go run cmd/server/main.go
    ```
-   El backend estará disponible en: http://localhost:8080
+   El backend estará disponible en: [http://localhost:8080](http://localhost:8080)
 
-   **Nota**: En desarrollo local necesitarás configurar las variables de entorno para Supabase.
+3. **Configurar variables de entorno**:
+   Asegúrate de que las variables en el archivo `.env` estén correctamente configuradas para conectar con Supabase.
 
-### Opción 3: Scripts desde la raíz
+---
 
-```bash
-# Desarrollo frontend únicamente
-npm run dev
+## 🔧 Configuración de Servicios
 
-# Instalar dependencias
-npm run install:frontend
-npm run install:backend
+### 1. Backend (Go)
+1. **Instalar dependencias**:
+   ```bash
+   cd backend
+   go mod download
+   ```
 
-# Build para producción
-npm run build
+2. **Configurar migraciones**:
+   - Asegúrate de que el servidor PostgreSQL esté corriendo.
+   - Aplica las migraciones y el seed inicial:
+     ```bash
+     goose -dir migrations postgres "postgres://usuario:contraseña@localhost:5432/mediapp_db?sslmode=disable" up
+     ```
 
-# Linting y formateo
-npm run lint
-npm run format
-```
+3. **Ejecutar el servidor**:
+   ```bash
+   go run ./cmd/server/main.go
+   ```
+   El backend estará disponible en: [http://localhost:8080](http://localhost:8080).
 
-## �️ Base de Datos
+4. **Verificar el estado del backend**:
+   - Health Check: [http://localhost:8080/health](http://localhost:8080/health)
+   - Swagger Docs: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
-**Importante**: Este proyecto usa **Supabase** como base de datos compartida, no PostgreSQL local.
+---
 
-- **Proveedor**: Supabase (PostgreSQL en la nube)
-- **Conectividad**: 100% (12/12 tablas)
-- **Configuración**: Variables en `.env`
-- **Beneficios**: Colaborativo, sin setup local, datos compartidos
+### 2. Frontend (React + Vite)
+1. **Instalar dependencias**:
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-## 📁 Estructura del Proyecto
+2. **Ejecutar en modo desarrollo**:
+   ```bash
+   npm run dev
+   ```
+   El frontend estará disponible en: [http://localhost:3000](http://localhost:3000).
 
-```
-mediapp/
-├── frontend/                    # React + TypeScript + Vite
-│   ├── src/
-│   ├── public/
-│   ├── Dockerfile.dev          # Desarrollo
-│   └── vite.config.ts
-├── backend/                    # Go + Gin + Supabase
-│   ├── cmd/server/
-│   ├── internal/
-│   │   ├── handlers/           # API handlers
-│   │   ├── db/                 # Supabase connection
-│   │   └── auth/               # JWT auth
-│   ├── Dockerfile.dev          # Desarrollo
-│   └── .air.toml               # Hot reload
-├── docker-compose.dev.yml      # Desarrollo (v2.39+)
-├── .env                        # Variables de Supabase
-├── SETUP-COLABORATIVO.md       # Guía del equipo
-└── API-ENDPOINTS.md            # Documentación API
-```
+3. **Proxy API**:
+   - El frontend está configurado para redirigir automáticamente las solicitudes a la API del backend.
 
-## 🔧 Configuración de Desarrollo
+---
 
-### Frontend (Vite + React)
-- **Puerto**: 3000
-- **Hot Reload**: ✅ (Watch mode Docker)
-- **Proxy API**: Configurado automáticamente
+### 3. Base de Datos (Supabase)
+1. **Conexión a Supabase**:
+   - Asegúrate de que las variables de entorno en [`.env`](.env ) estén configuradas correctamente:
+     ```env
+     DATABASE_URL=postgres://usuario:contraseña@host:puerto/dbname
+     ```
 
-### Backend (Go + Air + Supabase)
-- **Puerto**: 8080
-- **Hot Reload**: ✅ (Air + Watch mode Docker)
-- **Base de datos**: Supabase PostgreSQL
-- **Conectividad**: 100% (12/12 tablas)
+2. **Verificar conectividad**:
+   ```bash
+   curl -s http://localhost:8080/api/v1/connect/all-tables | jq '.summary'
+   ```
+   Deberías obtener un resumen con `connection_rate: 100`.
 
-### Docker Compose v2.39+ Features
-- **Watch mode**: Cambios automáticos sin rebuild
-- **IPv4 networking**: Conectividad optimizada
-- **Environment files**: Variables centralizadas
-- **Health checks**: Verificación automática
-
-## 🌐 URLs de Desarrollo
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080
-- **Health Check**: http://localhost:8080/health
-- **Swagger Docs**: http://localhost:8080/swagger/index.html
-- **Conectividad**: http://localhost:8080/api/v1/connect/all-tables
+---
 
 ## 🛠️ Herramientas de Desarrollo
+- **Hot Reload**:
+  - Backend: Configurado con `Air` para recargar automáticamente al detectar cambios en archivos `.go`.
+  - Frontend: Configurado con Vite para recargar automáticamente al detectar cambios en `src/`.
 
-- **Docker Compose v2.39+**: Orquestación moderna
-- **Vite**: Build tool rápido para React
-- **Air**: Hot reload para Go
-- **Supabase**: Base de datos colaborativa
-- **JWT**: Autenticación
-- **Zap**: Structured logging
-- **pgx/v5**: Driver PostgreSQL optimizado
+- **Health Checks**:
+  - Backend: [http://localhost:8080/health](http://localhost:8080/health)
 
-## 📝 Comandos Útiles (Docker Compose v2.39+)
+- **Testing**:
+  - Backend:
+    ```bash
+    cd backend
+    go test ./...
+    ```
+  - Frontend:
+    ```bash
+    npm test
+    ```
 
-### Gestión de Servicios
-```bash
-# Levantar servicios
-docker compose -f docker-compose.dev.yml up
+---
 
-# Levantar en background
-docker compose -f docker-compose.dev.yml up -d
+## 📝 Notas Importantes
+1. **Puertos**:
+   - Backend: 8080
+   - Frontend: 3000
+2. **Variables de entorno**:
+   - Asegúrate de que [`.env`](.env ) esté correctamente configurado.
+3. **JWT**:
+   - La clave `JWT_SECRET_KEY` ser consistente entre todos los desarrolladores.
+4. **Base de datos compartida**:
+   - Todos los desarrolladores usan la misma instancia de Supabase para mantener consistencia.
 
-# Rebuild y levantar
-docker compose -f docker-compose.dev.yml up --build
-
-# Parar servicios
-docker compose -f docker-compose.dev.yml down
-
-# Parar y limpiar volúmenes
-docker compose -f docker-compose.dev.yml down -v
-```
-
-### Logs y Debugging
-```bash
-# Ver logs en tiempo real
-docker compose -f docker-compose.dev.yml logs -f
-
-# Logs del backend únicamente
-docker compose -f docker-compose.dev.yml logs -f backend-dev
-
-# Logs del frontend únicamente
-docker compose -f docker-compose.dev.yml logs -f frontend-dev
-
-# Ver estado de contenedores
-docker compose -f docker-compose.dev.yml ps
-```
-
-### Acceso a Contenedores
-```bash
-# Acceder al contenedor del backend
-docker compose -f docker-compose.dev.yml exec backend-dev sh
-
-# Acceder al contenedor del frontend
-docker compose -f docker-compose.dev.yml exec frontend-dev sh
-
-# Ejecutar comando en backend
-docker compose -f docker-compose.dev.yml exec backend-dev go version
-```
-
-### Limpieza y Mantenimiento
-```bash
-# Rebuild completo sin cache
-docker compose -f docker-compose.dev.yml build --no-cache
-
-# Recrear contenedores
-docker compose -f docker-compose.dev.yml up --force-recreate
-
-# Limpiar sistema Docker
-docker system prune -f
-
-# Limpiar redes Docker
-docker network prune -f
-```
-
-## 🧪 Testing y Verificación
-
-### Verificar que todo funciona
-```bash
-# Health check
-curl http://localhost:8080/health
-
-# Conectividad Supabase (debería ser 100%)
-curl -s http://localhost:8080/api/v1/connect/all-tables | jq '.summary'
-
-# Inspeccionar tabla específica
-curl -s "http://localhost:8080/api/v1/inspect/tables?table=pacientes" | jq '.'
-```
-
-### Verificar Watch Mode
-```bash
-# Hacer un cambio en cualquier archivo .go o .tsx/.ts
-# Los contenedores deberían recompilar automáticamente
-docker compose -f docker-compose.dev.yml logs -f backend-dev
-```
+---
 
 ## 🚨 Solución de Problemas
+1. **El backend no responde**:
+   - Verifica el puerto 8080.
+   - Revisa los logs:
+     ```bash
+     docker compose -f docker-compose.dev.yml logs backend-dev
+     ```
+   - Verifica el health check:
+     ```bash
+     curl http://localhost:8080/health
+     ```
 
-### El stack no arranca
-```bash
-# 1. Verificar Docker
-docker compose version  # Debería ser v2.39+
+2. **El frontend no carga**:
+   - Verifica el puerto 3000.
+   - Revisa los logs:
+     ```bash
+     docker compose -f docker-compose.dev.yml logs frontend-dev
+     ```
 
-# 2. Limpiar todo
-docker compose -f docker-compose.dev.yml down --remove-orphans
-docker system prune -f
+3. **Problemas de conectividad con Supabase**:
+   - Verifica las variables de entorno:
+     ```bash
+     docker compose -f docker-compose.dev.yml exec backend-dev env | grep DATABASE
+     ```
+   - Prueba la conectividad:
+     ```bash
+     curl http://localhost:8080/api/v1/test/supabase
+     ```
 
-# 3. Rebuild completo
-docker compose -f docker-compose.dev.yml up --build --force-recreate
-```
+---
 
-### Problemas de conectividad con Supabase
-```bash
-# Verificar variables de entorno
-docker compose -f docker-compose.dev.yml exec backend-dev env | grep DATABASE
-
-# Test de conectividad
-curl http://localhost:8080/api/v1/test/supabase
-```
-
-### El frontend no carga
-1. Verificar que el puerto 3000 esté libre
-2. Verificar logs: `docker compose -f docker-compose.dev.yml logs frontend-dev`
-3. Rebuild: `docker compose -f docker-compose.dev.yml up --build frontend-dev`
-
-### El backend no responde
-1. Verificar que el puerto 8080 esté libre
-2. Verificar logs: `docker compose -f docker-compose.dev.yml logs backend-dev`
-3. Verificar health check: `curl http://localhost:8080/health`
-
-### Watch mode no funciona
-1. Verificar que estás en Docker Compose v2.39+
-2. Los cambios deben estar en `src/` (frontend) o en archivos `.go` (backend)
-3. Revisar logs para ver si detecta cambios
-
-## 🏆 Estado Actual del Proyecto
-
-- ✅ Docker Compose v2.39+ configurado
-- ✅ 100% conectividad con Supabase (12/12 tablas)
-- ✅ Hot reload funcionando en ambos servicios
-- ✅ Watch mode activado
-- ✅ Health checks configurados
-- ✅ API endpoints documentados
-- ✅ Entorno colaborativo listo
+## 🌐 URLs de Desarrollo
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://localhost:8080](http://localhost:8080)
+- **Health Check**: [http://localhost:8080/health](http://localhost:8080/health)
+- **Swagger Docs**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
