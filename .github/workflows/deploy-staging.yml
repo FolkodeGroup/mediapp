@@ -23,13 +23,13 @@ jobs:
       - name: Build and Deploy Backend (Go) to Cloud Run
         id: deploy-backend
         run: |
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging . --dockerfile=./infra/docker/backend.Dockerfile
-          gcloud run deploy backend-staging \
-              --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --set-env-vars=DATABASE_URL=${{ secrets.DATABASE_URL }}
+            gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging --file=infra/docker/backend.Dockerfile .
+            gcloud run deploy backend-staging \
+                --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging \
+                --platform managed \
+                --region us-central1 \
+                --allow-unauthenticated \
+                --set-env-vars=DATABASE_URL=${{ secrets.DATABASE_URL }}
         
       - name: Build and Deploy Frontend (React) to Cloud Storage
         run: |
