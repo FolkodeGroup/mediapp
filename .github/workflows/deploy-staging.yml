@@ -1,0 +1,51 @@
+# .github/workflows/deploy-staging.yml
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - staging # Se activa con cada 'push' a la rama 'staging'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authorize GCP
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Build and Deploy Backend (Go) to Cloud Run
+        run: |
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging ./backend --file=./infra/docker/backend.Dockerfile
+          gcloud run deploy backend-staging \
+              --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging \
+              --platform managed \
+              --region us-central1 \
+              --allow-unauthenticated \
+              --set-env-vars=DATABASE_URL=${{ secrets.DATABASE_URL }}
+      
+      - name: Build and Deploy Frontend (React) to Cloud Storage
+        run: |
+          # Asume que el directorio del frontend es 'frontend' y usa npm
+          cd frontend
+          npm install
+          npm run build
+          # Regresa al directorio raíz
+          cd ..
+        env:
+            REACT_APP_API_URL: ${{ steps.deploy-backend.outputs.url }}
+
+      - name: Upload to Cloud Storage
+        run: |
+          # Sube los archivos de la carpeta 'build' del frontend a un bucket
+          gsutil -m cp -r ./frontend/build/* gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend/
+          # Configura los permisos
+          gsutil iam ch allUsers:objectViewer gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
+          # Configura la página de índice
+          gsutil web set -m index.html gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
