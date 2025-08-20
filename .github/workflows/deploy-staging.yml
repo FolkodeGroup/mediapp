@@ -1,4 +1,4 @@
-# .github/workflows/deploy-staging.yml
+# .github/workflows/deploy-staging.yml probando stating
 name: Deploy to Staging
 
 on:
@@ -48,4 +48,4 @@ jobs:
           # Configura los permisos
           gsutil iam ch allUsers:objectViewer gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
           # Configura la página de índice
-          gsutil web set -m index.html gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
+          gsutil web set -m index.html gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend 
