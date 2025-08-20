@@ -1,4 +1,4 @@
-# .github/workflows/deploy-staging.yml probando stating 1
+# .github/workflows/deploy-staging.yml
 name: Deploy to Staging
 
 on:
@@ -21,6 +21,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v1'
 
       - name: Build and Deploy Backend (Go) to Cloud Run
+        id: deploy-backend
         run: |
           gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/backend-staging ./backend --dockerfile=./infra/docker/backend.Dockerfile
           gcloud run deploy backend-staging \
@@ -29,7 +30,7 @@ jobs:
               --region us-central1 \
               --allow-unauthenticated \
               --set-env-vars=DATABASE_URL=${{ secrets.DATABASE_URL }}
-      
+        
       - name: Build and Deploy Frontend (React) to Cloud Storage
         run: |
           # Asume que el directorio del frontend es 'frontend' y usa npm
@@ -39,7 +40,7 @@ jobs:
           # Regresa al directorio raíz
           cd ..
         env:
-            REACT_APP_API_URL: ${{ steps.deploy-backend.outputs.url }}
+          REACT_APP_API_URL: https://backend-staging-`gcloud run services describe backend-staging --format="value(status.url)" --region=us-central1`
 
       - name: Upload to Cloud Storage
         run: |
@@ -48,4 +49,4 @@ jobs:
           # Configura los permisos
           gsutil iam ch allUsers:objectViewer gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
           # Configura la página de índice
-          gsutil web set -m index.html gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend 
+          gsutil web set -m index.html gs://${{ secrets.GCP_PROJECT_ID }}-staging-frontend
