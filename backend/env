@@ -1,0 +1,52 @@
+# ==================================================
+# 🏥 MediApp - Variables de Entorno (Desarrollo Colaborativo)
+# ==================================================
+# ⚠️  Configurado para trabajo colaborativo con Supabase
+
+# --------------------------------------------------
+# 🐘 PostgreSQL Database Configuration (Supabase)
+# --------------------------------------------------
+# --------------------------------------------------
+# 🐘 PostgreSQL Database Configuration (Supabase)
+# --------------------------------------------------
+DATABASE_URL=postgresql://postgres.omtkjcrkvwwjpownndvh:MediApp2025-@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+
+# --------------------------------------------------
+# 🚪 Application Ports
+# --------------------------------------------------
+FRONTEND_PORT=3000
+APP_PORT=8080
+
+# --------------------------------------------------
+# ⚙️ Application Configuration
+# --------------------------------------------------
+APP_ENV=development
+APP_DEBUG=true
+ENV=development
+
+# --------------------------------------------------
+# 📝 Logging Configuration
+# --------------------------------------------------
+LOG_LEVEL=debug
+LOG_FORMAT=console
+
+# --------------------------------------------------
+# 🔐 JWT Configuration
+# --------------------------------------------------
+JWT_SECRET_KEY=K7m#9P2vR8nX4bZ6cD9fG1hJ3kL7qW5eR8tY2uI4oA6sD9fG1hJ3kL7mN9p
+
+# --------------------------------------------------
+# 🌐 API Configuration
+# --------------------------------------------------
+API_VERSION=v1
+API_BASE_PATH=/api/v1
+
+# --------------------------------------------------
+# 🔧 Docker Configuration
+# --------------------------------------------------
+PORT=8080
+
+# --------------------------------------------------
+# 🔑 Database Credentials (Supabase)
+# --------------------------------------------------
+DB_PASSWORD=MediApp2025-
