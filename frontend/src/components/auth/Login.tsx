@@ -54,71 +54,65 @@ const LoginForm = () => {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="form-login"
+      className="space-y-4 form-login"
       autoComplete="off"
       noValidate
     >
-      <div className="">
-        {/* Usuario */}
-        <div className="space-y-1 div-login">
-          <label htmlFor="name" className="campo-login">
-            Usuario:
-          </label>
-          <Input
-            id="name"
-            {...register("username")}
-            placeholder="Usuario"
-            aria-invalid={!!errors.username}
-            className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
-            autoComplete="username"
-          />
-          <div className="min-h-[20px]">
-            {errors.username && (
-              <p className="text-sm text-red-600">{errors.username.message}</p>
-            )}
-          </div>
-        </div>
+      {/* Usuario */}
+      <div>
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700 mb-1 campo-login"
+        >
+          Usuario:
+        </label>
+        <Input
+          id="name"
+          {...register("username")}
+          placeholder="Usuario"
+          aria-invalid={!!errors.username}
+          className="ph-login"
+          autoComplete="username"
+        />
+        {errors.username && (
+          <p className="text-sm text-red-600">{errors.username.message}</p>
+        )}
+      </div>
 
-        {/* Contraseña */}
-        <div className="space-y-1 div-login">
-          <label htmlFor="contrasena" className="campo-login">
-            Contraseña:
-          </label>
-          <Input
-            type="password"
-            id="contrasena"
-            {...register("password")}
-            placeholder="Contraseña"
-            aria-invalid={!!errors.password}
-            className="w-full bg-white border border-gray-300 focus:border-gray-900 text-gray-800 ph-login"
-            autoComplete="current-password"
-          />
-          <div className="min-h-[20px]">
-            {errors.password && (
-              <p className="text-sm text-red-600">{errors.password.message}</p>
-            )}
-          </div>
-        </div>
+      {/* Contraseña */}
+      <div>
+        <label
+          htmlFor="contrasena"
+          className="block text-sm font-medium text-gray-700 mb-1 campo-login"
+        >
+          Contraseña:
+        </label>
+        <Input
+          type="password"
+          id="contrasena"
+          {...register("password")}
+          placeholder="Contraseña"
+          aria-invalid={!!errors.password}
+          className="ph-login"
+          autoComplete="current-password"
+        />
+        {errors.password && (
+          <p className="text-sm text-red-600">{errors.password.message}</p>
+        )}
+      </div>
 
-        <div>
-          {message && <Message type={message.type} text={message.text} />}
-        </div>
-
-        <div className="">
-          <div className="">
-            {/* Botón de enviar */}
-            <button
-              type="submit"
-              className="btn-login"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Cargando...' : 'Iniciar sesión'}
-            </button>
-            <button type="button" className="btn-login" onClick={() => navigate('/register')}>
-              Registrarse
-            </button>
-          </div>
-        </div>
+      {/* Botones */}
+      <div className="flex gap-2 justify-center pt-2">
+        <button type="submit" className="btn-login" disabled={isLoading}>
+          {isLoading ? "Cargando..." : "Iniciar sesión"}
+        </button>
+        <button
+          type="button"
+          className="btn-login"
+          onClick={() => navigate("/register")}
+        >
+          Registrarse
+        </button>
       </div>
     </form>
   );
