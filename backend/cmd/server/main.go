@@ -51,6 +51,12 @@ func main() {
 		}
 	}()
 
+	//  Ejecutar migración para campos de login
+	if err := db.AddLoginFields(pool, logger.L()); err != nil {
+		logger.L().Error("Error en migración de campos de login", zap.Error(err))
+		// No es fatal, la aplicación puede continuar
+	}
+
 	// Configurar modo de Gin
 	if os.Getenv("ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
