@@ -33,7 +33,7 @@ LOG_FORMAT=console
 # --------------------------------------------------
 # 🔐 JWT Configuration
 # --------------------------------------------------
-JWT_SECRET_KEY=K7m#9P2vR8nX4bZ6cD9fG1hJ3kL7qW5eR8tY2uI4oA6sD9fG1hJ3kL7mN9p
+JWT_SECRET_KEY="K7m#9P2vR8nX4bZ6cD9fG1hJ3kL7qW5eR8tY2uI4oA6sD9fG1hJ3kL7mN9p"
 
 # --------------------------------------------------
 # 🌐 API Configuration

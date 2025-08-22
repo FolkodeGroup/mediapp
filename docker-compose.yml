@@ -39,6 +39,15 @@ services:
       POSTGRES_DB: mediapp_db
     ports:
       - "5432:5432"
+    healthcheck: # <-- El bloque de verificación de salud que necesitas
+      test: ["CMD-SHELL", "pg_isready -U mediapp_user -d mediapp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - mediapp-network
+
   vault:
     image: hashicorp/vault:1.15
     container_name: mediapp-vault

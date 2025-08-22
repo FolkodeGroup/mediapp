@@ -1,0 +1,9 @@
+# Ignorar la carpeta del frontend para que no se suba a Cloud Build
+frontend/
+.env
+
+# Ignorar archivos temporales y directorios
+.git/
+.gitignore
+node_modules/
+.dockerignore

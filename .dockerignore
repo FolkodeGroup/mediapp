@@ -12,9 +12,9 @@ docker-compose.yml
 .dockerignore
 
 # Entorno
-.env
-.env.local
-.env.*.local
+#.env
+#.env.local
+#.env.*.local
 
 # IDE y editores
 .vscode/

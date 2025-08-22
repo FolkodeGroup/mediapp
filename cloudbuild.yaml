@@ -1,0 +1,9 @@
+# cloudbuild.yaml
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "southamerica-east1-docker.pkg.dev/mediaapp-469600/docker-repo/mediapp-backend:1.0"
+      - "." # El contexto de compilación es el directorio actual (backend)
+    dir: "backend" # Este es el cambio clave

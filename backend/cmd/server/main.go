@@ -123,7 +123,7 @@ func main() {
 
 	// Servidor
 	server := &http.Server{
-		Addr:    ":" + port,
+        Addr:    "0.0.0.0:" + port, // Asegura que el servidor escuche en todas las interfaces de red
 		Handler: router,
 	}
 
