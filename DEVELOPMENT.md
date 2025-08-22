@@ -128,11 +128,19 @@ docker compose version
 ---
 
 ## 🛠️ Herramientas de Desarrollo
-- **Hot Reload**:
-  - Backend: Configurado con `Air` para recargar automáticamente al detectar cambios en archivos `.go`.
-  - Frontend: Configurado con Vite para recargar automáticamente al detectar cambios en `src/`.
+## 🛠️ Herramientas de Desarrollo
+### 🚦 Notificación al equipo sobre monitoreo
 
-- **Health Checks**:
+> 🚦 **Monitoreo disponible en entorno de desarrollo**
+>
+> - El endpoint de health check del backend está disponible en:  
+>   [http://localhost:8080/health](http://localhost:8080/health)
+> - Los logs del backend pueden consultarse ejecutando:  
+>   `docker compose -f docker-compose.dev.yml logs -f`
+>
+> Por favor, utilicen estos recursos para verificar el estado del sistema y reportar cualquier anomalía.  
+> Si tienes dudas sobre cómo acceder, revisa la sección correspondiente en este documento.
+
   - Backend: [http://localhost:8080/health](http://localhost:8080/health)
 
 - **Testing**:
