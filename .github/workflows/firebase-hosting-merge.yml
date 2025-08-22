@@ -5,23 +5,27 @@ name: Deploy to Firebase Hosting on merge
 on:
   push:
     branches:
-      - staging
+      - staging  # O la rama en la que estés trabajando
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository code
+      # Paso 1: Descarga el código del repositorio
       - uses: actions/checkout@v4
-      
-      # Use a specific action that handles both build and deploy
-      - name: Build and Deploy to Firebase
+
+      # Paso 2: Construye la aplicación de frontend
+      # Este paso se ejecuta en la carpeta 'frontend' para crear la carpeta 'dist'
+      - name: Build Frontend
+        run: npm ci && npm run build
+        working-directory: ./frontend
+
+      # Paso 3: Despliega la aplicación en Firebase Hosting
+      # Este paso se ejecuta en la raíz para encontrar firebase.json
+      - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEDIAAPP_469600 }}'
           projectId: mediaapp-469600
-          # This action automatically runs `npm install` and `npm run build`
-          # It assumes your build script and dependencies are in the 'frontend' folder.
-          entrypoint: ./frontend
           channelId: live
