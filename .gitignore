@@ -6,6 +6,7 @@ sonar-project.properties
 /sonar-scanner-5.0.1.3006-linux/
 /sonar-scanner-cli-5.0.1.3006-linux.zip
 /tools/sonar-scanner/
+
 # Logs
 logs
 *.log
@@ -32,3 +33,6 @@ dist-ssr
 *.sln
 *.sw?
 backend/tmp/
+
+# RSA KEYS
+*.pem
