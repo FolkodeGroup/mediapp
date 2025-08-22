@@ -6,16 +6,22 @@ on:
   push:
     branches:
       - staging
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository code
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
-        working-directory: ./frontend  # <-- AGREGAR ESTA LÍNEA (reemplaza 'frontend' si la carpeta tiene otro nombre)
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      
+      # Use a specific action that handles both build and deploy
+      - name: Build and Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEDIAAPP_469600 }}
-          channelId: live
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEDIAAPP_469600 }}'
           projectId: mediaapp-469600
+          # This action automatically runs `npm install` and `npm run build`
+          # It assumes your build script and dependencies are in the 'frontend' folder.
+          entrypoint: ./frontend
+          channelId: live
