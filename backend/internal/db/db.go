@@ -70,3 +70,25 @@ func maskConnectionString(connStr string) string {
 	}
 	return masked
 }
+
+// AddLoginFields agrega los campos de login a la tabla usuarios
+func AddLoginFields(pool *pgxpool.Pool, logger *zap.Logger) error {
+    query := `
+        ALTER TABLE usuarios 
+        ADD COLUMN IF NOT EXISTS ultimo_login TIMESTAMP WITH TIME ZONE NULL,
+        ADD COLUMN IF NOT EXISTS intentos_fallidos INTEGER NOT NULL DEFAULT 0;
+    `
+    
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+    
+    _, err := pool.Exec(ctx, query)
+    if err != nil {
+        logger.Error("Error agregando campos de login a la tabla usuarios", 
+            zap.Error(err))
+        return fmt.Errorf("error agregando campos de login: %w", err)
+    }
+    
+    logger.Info("Campos de login agregados exitosamente a la tabla usuarios")
+    return nil
+}
