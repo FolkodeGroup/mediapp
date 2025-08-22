@@ -67,7 +67,6 @@ func main() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-
 	// Middlewares
 	router.Use(middleware.RequestIDMiddleware(logger.L()))
 	router.Use(middleware.LoggingMiddleware())
@@ -101,6 +100,9 @@ func main() {
 		// Rutas de pacientes
 		v1.GET("/pacientes", pacienteHandler.GetPacientes)
 		v1.GET("/pacientes/:id", pacienteHandler.GetPaciente)
+		v1.POST("/pacientes", pacienteHandler.CreatePaciente)
+		v1.PUT("/pacientes/:id", pacienteHandler.UpdatePaciente)
+		v1.DELETE("/pacientes/:id", pacienteHandler.DeletePaciente)
 
 		// Rutas de prueba y diagnóstico
 		v1.GET("/test/supabase", pacienteHandler.TestSupabaseConnection)

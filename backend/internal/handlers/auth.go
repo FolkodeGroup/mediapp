@@ -9,11 +9,11 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/auth"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
 	"github.com/FolkodeGroup/mediapp/internal/models"
+	"github.com/FolkodeGroup/mediapp/internal/security"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
-	"github.com/FolkodeGroup/mediapp/internal/security"
 )
 
 type AuthHandler struct {
@@ -40,11 +40,10 @@ func NewAuthHandler(logger *zap.Logger, db *pgxpool.Pool) *AuthHandler {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-
 	log := logger.FromContext(c.Request.Context())
 	log.Info("Intento de login", zap.String("email", c.PostForm("email")))
 	var loginReq struct {
-		Username string `json:"username" binding:"required"`
+		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required"`
 	}
 
@@ -53,14 +52,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	var user models.User
+	var user models.Usuario
 	var passwordHash string
 
-	err := h.db.QueryRow(c, ` // ✅ Agrega contexto 'c'
-    SELECT id, password_hash, rol_id, consultorio_id, activo, creado_en
-    FROM users
-    WHERE username = $1 AND activo = true
-`, loginReq.Username).Scan(&user.ID, &passwordHash, &user.RolID, &user.ConsultorioID, &user.Activo, &user.CreadoEn)
+	err := h.db.QueryRow(c, `
+	       SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, activo, creado_en
+	       FROM usuarios
+	       WHERE email = $1 AND activo = true
+       `, loginReq.Email).Scan(&user.ID, &user.Nombre, &user.Email, &passwordHash, &user.RolID, &user.ConsultorioID, &user.Activo, &user.CreadoEn)
 
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
@@ -73,9 +72,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Verificar la contraseña
 	if !security.CheckPasswordHash(loginReq.Password, passwordHash) {
-    c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
-    return
-}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
+		return
+	}
 
 	// Generar token JWT
 	token, err := auth.GenerateToken(user.ID.String(), user.RolID)
@@ -91,9 +90,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"token":   token,
 		"user": gin.H{
 			"id":             user.ID.String(),
-			"username":       loginReq.Username,
+			"nombre":         user.Nombre,
+			"email":          user.Email,
 			"rol_id":         user.RolID,
-			"consultorio_id": user.ConsultorioID.String(),
+			"consultorio_id": user.ConsultorioID,
 			"activo":         user.Activo,
 			"creado_en":      user.CreadoEn,
 		},
@@ -114,7 +114,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Router       /register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var input struct {
-		Username      string `json:"username" binding:"required"`
+		Nombre        string `json:"nombre" binding:"required"`
+		Email         string `json:"email" binding:"required,email"`
 		Password      string `json:"password" binding:"required,min=6"`
 		RolID         int    `json:"rol_id" binding:"required"`
 		ConsultorioID string `json:"consultorio_id" binding:"required,uuid"`
@@ -141,14 +142,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	_, err = h.db.Exec(c, ` // ✅ Agrega contexto 'c'
-    INSERT INTO users (id, username, password_hash, rol_id, consultorio_id, activo, creado_en)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-`, userID, input.Username, string(hashedPassword), input.RolID, consultorioUUID, input.Activo, time.Now())
+	_, err = h.db.Exec(c, `
+	       INSERT INTO usuarios (id, nombre, email, contrasena_hash, rol_id, consultorio_id, activo, creado_en)
+	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       `, userID, input.Nombre, input.Email, string(hashedPassword), input.RolID, consultorioUUID, input.Activo, time.Now())
 
 	if err != nil {
 		h.logger.Error("Error al guardar usuario en DB", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo registrar el usuario"})
+		fmt.Printf("[DEBUG SQL ERROR] %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo registrar el usuario", "detalle": err.Error()})
 		return
 	}
 
