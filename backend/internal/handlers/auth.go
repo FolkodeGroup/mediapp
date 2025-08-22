@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/FolkodeGroup/mediapp/internal/auth"
-	"github.com/FolkodeGroup/mediapp/internal/logger"
 	"github.com/FolkodeGroup/mediapp/internal/models"
 	"github.com/FolkodeGroup/mediapp/internal/security"
 	"github.com/gin-gonic/gin"
@@ -40,8 +39,16 @@ func NewAuthHandler(logger *zap.Logger, db *pgxpool.Pool) *AuthHandler {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	log := logger.FromContext(c.Request.Context())
-	log.Info("Intento de login", zap.String("email", c.PostForm("email")))
+	// Usamos el logger del handler en lugar de obtenerlo del contexto
+	log := h.logger
+
+	// Pero si quieres mantener el request_id, puedes hacer:
+	if requestID, exists := c.Get("request_id"); exists {
+		if id, ok := requestID.(string); ok {
+			log = h.logger.With(zap.String("request_id", id))
+		}
+	}
+
 	var loginReq struct {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required"`
@@ -52,37 +59,115 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	log.Info("Intento de login",
+		zap.String("email", loginReq.Email),
+		zap.String("ip", c.ClientIP()))
+
 	var user models.Usuario
 	var passwordHash string
+	var intentosFallidos int
+	var ultimoLogin *time.Time
 
-	err := h.db.QueryRow(c, `
-	       SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, activo, creado_en
-	       FROM usuarios
-	       WHERE email = $1 AND activo = true
-       `, loginReq.Email).Scan(&user.ID, &user.Nombre, &user.Email, &passwordHash, &user.RolID, &user.ConsultorioID, &user.Activo, &user.CreadoEn)
+	// ACTUALIZAR la consulta para incluir los nuevos campos
+	err := h.db.QueryRow(c.Request.Context(), `
+        SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, 
+               activo, creado_en, intentos_fallidos, ultimo_login
+        FROM usuarios 
+        WHERE email = $1 AND activo = true
+    `, loginReq.Email).Scan(
+		&user.ID, &user.Nombre, &user.Email, &passwordHash, &user.RolID,
+		&user.ConsultorioID, &user.Activo, &user.CreadoEn,
+		&intentosFallidos, &ultimoLogin,
+	)
 
 	if err == sql.ErrNoRows {
+		h.logger.Warn("Intento de login fallido - usuario no encontrado",
+			zap.String("email", loginReq.Email),
+			zap.String("ip", c.ClientIP()))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
 		return
 	} else if err != nil {
-		h.logger.Error("Error al buscar usuario en la base de datos", zap.Error(err))
+		h.logger.Error("Error al buscar usuario en la base de datos",
+			zap.Error(err),
+			zap.String("email", loginReq.Email))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
+		return
+	}
+
+	// Verificar si la cuenta está bloqueada por demasiados intentos (más de 5)
+	if intentosFallidos >= 5 {
+		h.logger.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
+			zap.String("email", loginReq.Email),
+			zap.String("user_id", user.ID.String()),
+			zap.Int("intentos_fallidos", intentosFallidos),
+			zap.String("ip", c.ClientIP()))
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Cuenta temporalmente bloqueada por demasiados intentos fallidos. Contacte al administrador.",
+		})
 		return
 	}
 
 	// Verificar la contraseña
 	if !security.CheckPasswordHash(loginReq.Password, passwordHash) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
+		// INCREMENTAR intentos fallidos
+		newAttempts := intentosFallidos + 1
+		_, err := h.db.Exec(c.Request.Context(), `
+            UPDATE usuarios 
+            SET intentos_fallidos = $1 
+            WHERE email = $2
+        `, newAttempts, loginReq.Email)
+
+		if err != nil {
+			h.logger.Error("Error al actualizar intentos fallidos",
+				zap.Error(err),
+				zap.String("email", loginReq.Email))
+		}
+
+		h.logger.Warn("Intento de login fallido - contraseña incorrecta",
+			zap.String("email", loginReq.Email),
+			zap.String("ip", c.ClientIP()),
+			zap.Int("intentos_fallidos", newAttempts))
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":              "Credenciales inválidas",
+			"intentos_restantes": 5 - newAttempts, // Asumiendo bloqueo después de 5 intentos
+		})
 		return
+	}
+
+	// LOGIN EXITOSO - Reiniciar intentos y actualizar último login
+	now := time.Now()
+	_, err = h.db.Exec(c.Request.Context(), `
+        UPDATE usuarios 
+        SET intentos_fallidos = 0, ultimo_login = $1 
+        WHERE email = $2
+    `, now, loginReq.Email)
+
+	if err != nil {
+		h.logger.Error("Error al actualizar datos de login exitoso",
+			zap.Error(err),
+			zap.String("email", loginReq.Email))
+		// No retornamos error aquí, solo loggeamos
 	}
 
 	// Generar token JWT
 	token, err := auth.GenerateToken(user.ID.String(), user.RolID)
 	if err != nil {
-		h.logger.Error("Error al generar token", zap.Error(err))
+		h.logger.Error("Error al generar token",
+			zap.Error(err),
+			zap.String("user_id", user.ID.String()))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al generar token"})
 		return
 	}
+
+	// Log exitoso con información relevante
+	h.logger.Info("Login exitoso",
+		zap.String("user_id", user.ID.String()),
+		zap.String("email", user.Email),
+		zap.String("ip", c.ClientIP()),
+		zap.Time("ultimo_login", now),
+		zap.Int("rol_id", user.RolID))
 
 	// Respuesta exitosa con token y datos del usuario
 	c.JSON(http.StatusOK, gin.H{
