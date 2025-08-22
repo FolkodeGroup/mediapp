@@ -5,7 +5,7 @@ name: Deploy to Firebase Hosting on merge
 on:
   push:
     branches:
-      - staging  # O la rama en la que estés trabajando
+      - staging  # Asegúrate de que esta sea la rama correcta
 
 jobs:
   build_and_deploy:
@@ -15,13 +15,13 @@ jobs:
       - uses: actions/checkout@v4
 
       # Paso 2: Construye la aplicación de frontend
-      # Este paso se ejecuta en la carpeta 'frontend' para crear la carpeta 'dist'
+      # La acción se ejecutará en la carpeta 'frontend'
       - name: Build Frontend
         run: npm ci && npm run build
         working-directory: ./frontend
 
       # Paso 3: Despliega la aplicación en Firebase Hosting
-      # Este paso se ejecuta en la raíz para encontrar firebase.json
+      # La acción se ejecuta en la raíz del repositorio
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
