@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -133,14 +135,23 @@ func (h *PacienteHandler) DeletePaciente(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Paciente eliminado exitosamente"})
 }
 
+// PoolTX define los métodos mínimos que el handler de pacientes necesita de un pool
+type PoolTX interface {
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Ping(ctx context.Context) error
+	Stat() *pgxpool.Stat
+}
+
 // PacienteHandler maneja las operaciones relacionadas con pacientes
 type PacienteHandler struct {
-	pool   *pgxpool.Pool
+	pool   PoolTX
 	logger *zap.Logger
 }
 
 // NewPacienteHandler crea una nueva instancia del handler de pacientes
-func NewPacienteHandler(pool *pgxpool.Pool, logger *zap.Logger) *PacienteHandler {
+func NewPacienteHandler(pool PoolTX, logger *zap.Logger) *PacienteHandler {
 	return &PacienteHandler{
 		pool:   pool,
 		logger: logger,
