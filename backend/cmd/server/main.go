@@ -115,12 +115,16 @@ func main() {
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
-		// Rutas de pacientes
-		v1.GET("/pacientes", pacienteHandler.GetPacientes)
-		v1.GET("/pacientes/:id", pacienteHandler.GetPaciente)
-		v1.POST("/pacientes", pacienteHandler.CreatePaciente)
-		v1.PUT("/pacientes/:id", pacienteHandler.UpdatePaciente)
-		v1.DELETE("/pacientes/:id", pacienteHandler.DeletePaciente)
+		// Rutas de pacientes protegidas por JWT
+		pacientes := v1.Group("/pacientes")
+		pacientes.Use(middleware.JWTAuthMiddleware())
+		{
+			pacientes.GET("", pacienteHandler.GetPacientes)
+			pacientes.GET(":id", pacienteHandler.GetPaciente)
+			pacientes.POST("", pacienteHandler.CreatePaciente)
+			pacientes.PUT(":id", pacienteHandler.UpdatePaciente)
+			pacientes.DELETE(":id", pacienteHandler.DeletePaciente)
+		}
 
 		// Rutas de prueba y diagnóstico
 		v1.GET("/test/supabase", pacienteHandler.TestSupabaseConnection)
