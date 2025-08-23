@@ -84,6 +84,7 @@ jobs:
           vault version
 
       - name: Configure Vault
+        shell: bash
         run: |
           for i in {1..10};
             if curl -s http://localhost:8200/v1/sys/health | grep '"initialized":true'; then
@@ -118,6 +119,7 @@ jobs:
 
       - name: Start backend server
         working-directory: backend/cmd/server
+        shell: bash
         run: |
           export DB_HOST=localhost
           export DB_PORT=5432
@@ -256,6 +258,7 @@ jobs:
       - name: Evaluate test results
         id: evaluate_results
         if: always()
+        shell: bash
         run: |
           # API Tests Evaluation
           TOTAL_API_TESTS=3
@@ -277,6 +280,7 @@ jobs:
         if: always()
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        shell: bash
         run: |
           if [ -z "$DISCORD_WEBHOOK_URL" ]; then
             echo "No Discord webhook configured, skipping notification"
@@ -293,10 +297,7 @@ jobs:
           fi
           
           # API Login Summary
-          LOGIN_API_SUMMARY="API Login Tests: ${{ env.login_api_tests_passed }}/${{ env.login_api_tests_total }} pasaron"
-          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Credenciales validas: ${{ env.valid_login_status }}"
-          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Credenciales invalidas: ${{ env.invalid_login_status }}"  
-          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Usuario inexistente: ${{ env.nonexistent_login_status }}"
+          LOGIN_API_SUMMARY="API Login Tests: ${{ env.login_api_tests_passed }}/${{ env.login_api_tests_total }} pasaron\n• Credenciales validas: ${{ env.valid_login_status }}\n• Credenciales invalidas: ${{ env.invalid_login_status }}\n• Usuario inexistente: ${{ env.nonexistent_login_status }}"
           
           # Cypress Summary
           CYPRESS_SUMMARY="E2E Login Tests: ${{ env.cypress_status }}"
@@ -304,23 +305,26 @@ jobs:
           # Description
           DESCRIPTION="$LOGIN_API_SUMMARY\n\n$CYPRESS_SUMMARY"
 
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d "{
-                 \"username\": \"CI Pipeline [E2E]\",
-                 \"embeds\": [{
-                   \"title\": \"$STATUS\",
-                   \"color\": $COLOR,
-                   \"fields\": [
-                     {\"name\": \"Repo\", \"value\": \"${{ github.repository }}\", \"inline\": true},
-                     {\"name\": \"Branch\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
-                     {\"name\": \"Author\", \"value\": \"${{ github.actor }}\", \"inline\": true},
-                     {\"name": \"Backend Coverage\", \"value\": \"${{ env.backend_coverage }}\", \"inline\": true},
-                     {\"name": \"Frontend Coverage\", \"value\": \"${{ env.frontend_coverage }}\", \"inline\": true},
-                     {\"name": \"Job Status\", \"value\": \"${{ job.status }}\", \"inline\": true}
-                   ],
-                   \"description\": \"$DESCRIPTION\",
-                   \"footer\": {\"text\": \"Pipeline con Login Tests E2E\"}
-                 }]
-               }" \
-               $DISCORD_WEBHOOK_URL
+          # Build JSON payload and write to file
+          cat <<EOF > payload.json
+          {
+            "username": "CI Pipeline [E2E]",
+            "embeds": [{
+              "title": "$STATUS",
+              "color": $COLOR,
+              "fields": [
+                {"name": "Repo", "value": "${{ github.repository }}", "inline": true},
+                {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                {"name": "Author", "value": "${{ github.actor }}", "inline": true},
+                {"name": "Backend Coverage", "value": "${{ env.backend_coverage }}", "inline": true},
+                {"name": "Frontend Coverage", "value": "${{ env.frontend_coverage }}", "inline": true},
+                {"name": "Job Status", "value": "${{ job.status }}", "inline": true}
+              ],
+              "description": "$DESCRIPTION",
+              "footer": {"text": "Pipeline con Login Tests E2E"}
+            }]
+          }
+EOF
+
+          # Send notification
+          curl -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL"
