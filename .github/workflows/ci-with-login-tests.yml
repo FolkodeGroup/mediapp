@@ -35,7 +35,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
---health-cmd pg_isready
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -53,7 +53,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Usar versión específica compatible con act
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -86,7 +85,7 @@ jobs:
 
       - name: Configure Vault
         run: |
-          for i in {1..10}; do
+          for i in {1..10};
             if curl -s http://localhost:8200/v1/sys/health | grep '"initialized":true'; then
               echo "Vault is ready" && break
             fi
@@ -133,7 +132,7 @@ jobs:
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           
-          for i in {1..30}; do
+          for i in {1..30};
             if curl -f http://localhost:8080/health 2>/dev/null; then
               echo "Server ready on port 8080"
               break
@@ -149,7 +148,7 @@ jobs:
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
             http://localhost:8080/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{
+            -d '{ 
               "username": "testuser",
               "password": "testpass123"
             }')
@@ -174,7 +173,7 @@ jobs:
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
             http://localhost:8080/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{
+            -d '{ 
               "username": "testuser",
               "password": "wrongpassword"
             }')
@@ -197,7 +196,7 @@ jobs:
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
             http://localhost:8080/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{
+            -d '{ 
               "username": "nonexistent",
               "password": "anypassword"
             }')
@@ -220,7 +219,6 @@ jobs:
             kill $SERVER_PID 2>/dev/null || true
           fi
 
-      # Usar version compatible con act
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -244,22 +242,36 @@ jobs:
           COV=$(grep 'All files' coverage/lcov-report/index.html | grep -o '[0-9]\+%' | head -n 1 || echo "N/A")
           echo "frontend_coverage=$COV" >> $GITHUB_ENV
 
-      - name: Evaluate login results
+      - name: Run Cypress E2E Tests
+        id: cypress_tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 120
+        env:
+          VITE_API_URL: http://localhost:8080
+
+      - name: Evaluate test results
+        id: evaluate_results
+        if: always()
         run: |
-          TOTAL_TESTS=3
-          PASSED_TESTS=0
-          FAILED_DETAILS=""
-          
-          [[ "$valid_login_status" == "PASSED" ]] && ((PASSED_TESTS++))
-          [[ "$invalid_login_status" == "PASSED" ]] && ((PASSED_TESTS++))
-          [[ "$nonexistent_login_status" == "PASSED" ]] && ((PASSED_TESTS++))
-          
-          [[ "$valid_login_status" == "FAILED" ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Valid login: $valid_login_error"
-          [[ "$invalid_login_status" == "FAILED" ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Invalid login: $invalid_login_error"
-          [[ "$nonexistent_login_status" == "FAILED" ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Nonexistent user: $nonexistent_login_error"
-          
-          echo "login_tests_passed=$PASSED_TESTS" >> $GITHUB_ENV
-          echo "login_tests_total=$TOTAL_TESTS" >> $GITHUB_ENV
+          # API Tests Evaluation
+          TOTAL_API_TESTS=3
+          PASSED_API_TESTS=0
+          [[ "${{ env.valid_login_status }}" == "PASSED" ]] && ((PASSED_API_TESTS++))
+          [[ "${{ env.invalid_login_status }}" == "PASSED" ]] && ((PASSED_API_TESTS++))
+          [[ "${{ env.nonexistent_login_status }}" == "PASSED" ]] && ((PASSED_API_TESTS++))
+          echo "login_api_tests_passed=$PASSED_API_TESTS" >> $GITHUB_ENV
+          echo "login_api_tests_total=$TOTAL_API_TESTS" >> $GITHUB_ENV
+
+          # Cypress Test Evaluation
+          if [ "${{ steps.cypress_tests.outcome }}" == "success" ]; then
+            echo "cypress_status=PASSED" >> $GITHUB_ENV
+          else
+            echo "cypress_status=FAILED" >> $GITHUB_ENV
+          fi
 
       - name: Notify Discord
         if: always()
@@ -271,27 +283,31 @@ jobs:
             exit 0
           fi
           
-          BUILD_STATUS="${{ job.status }}"
-          LOGIN_PASSED="${{ env.login_tests_passed }}"
-          LOGIN_TOTAL="${{ env.login_tests_total }}"
-          
-          if [ "$BUILD_STATUS" = "success" ] && [ "$LOGIN_PASSED" = "$LOGIN_TOTAL" ]; then
-            STATUS="Build y Login Tests - TODO OK"
+          # Overall Status
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS="Build y Tests - TODO OK"
             COLOR=3066993
           else
-            STATUS="Build o Login Tests - HAY FALLOS"
+            STATUS="Build o Tests - HAY FALLOS"
             COLOR=15158332
           fi
           
-          LOGIN_SUMMARY="Login Tests: $LOGIN_PASSED/$LOGIN_TOTAL pasaron"
-          LOGIN_SUMMARY="$LOGIN_SUMMARY\\n• Credenciales validas: $valid_login_status"
-          LOGIN_SUMMARY="$LOGIN_SUMMARY\\n• Credenciales invalidas: $invalid_login_status"  
-          LOGIN_SUMMARY="$LOGIN_SUMMARY\\n• Usuario inexistente: $nonexistent_login_status"
+          # API Login Summary
+          LOGIN_API_SUMMARY="API Login Tests: ${{ env.login_api_tests_passed }}/${{ env.login_api_tests_total }} pasaron"
+          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Credenciales validas: ${{ env.valid_login_status }}"
+          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Credenciales invalidas: ${{ env.invalid_login_status }}"  
+          LOGIN_API_SUMMARY="$LOGIN_API_SUMMARY\n• Usuario inexistente: ${{ env.nonexistent_login_status }}"
           
+          # Cypress Summary
+          CYPRESS_SUMMARY="E2E Login Tests: ${{ env.cypress_status }}"
+
+          # Description
+          DESCRIPTION="$LOGIN_API_SUMMARY\n\n$CYPRESS_SUMMARY"
+
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "{
-                 \"username\": \"CI Pipeline [LOGIN TESTS]\",
+                 \"username\": \"CI Pipeline [E2E]\",
                  \"embeds\": [{
                    \"title\": \"$STATUS\",
                    \"color\": $COLOR,
@@ -299,11 +315,12 @@ jobs:
                      {\"name\": \"Repo\", \"value\": \"${{ github.repository }}\", \"inline\": true},
                      {\"name\": \"Branch\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
                      {\"name\": \"Author\", \"value\": \"${{ github.actor }}\", \"inline\": true},
-                     {\"name\": \"Backend Coverage\", \"value\": \"${{ env.backend_coverage }}\", \"inline\": true},
-                     {\"name\": \"Frontend Coverage\", \"value\": \"${{ env.frontend_coverage }}\", \"inline\": true}
+                     {\"name": \"Backend Coverage\", \"value\": \"${{ env.backend_coverage }}\", \"inline\": true},
+                     {\"name": \"Frontend Coverage\", \"value\": \"${{ env.frontend_coverage }}\", \"inline\": true},
+                     {\"name": \"Job Status\", \"value\": \"${{ job.status }}\", \"inline\": true}
                    ],
-                   \"description\": \"$LOGIN_SUMMARY\",
-                   \"footer\": {\"text\": \"Pipeline con Login Tests\"}
+                   \"description\": \"$DESCRIPTION\",
+                   \"footer\": {\"text\": \"Pipeline con Login Tests E2E\"}
                  }]
                }" \
                $DISCORD_WEBHOOK_URL
