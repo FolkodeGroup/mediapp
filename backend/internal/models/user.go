@@ -16,6 +16,8 @@ type Usuario struct {
 	ConsultorioID  *uuid.UUID `json:"consultorio_id,omitempty" db:"consultorio_id"`
 	Activo         bool       `json:"activo" db:"activo"`
 	CreadoEn       time.Time  `json:"creado_en" db:"creado_en"`
+	UltimoLogin    *time.Time `json:"ultimo_login,omitempty" db:"ultimo_login"`
+	IntentosFallidos int      `json:"intentos_fallidos,omitempty" db:"intentos_fallidos"`
 }
 
 // Paciente representa la tabla 'pacientes'
