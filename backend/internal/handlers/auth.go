@@ -11,7 +11,9 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/auth"
 	"github.com/FolkodeGroup/mediapp/internal/models"
 	"github.com/FolkodeGroup/mediapp/internal/security"
+	"github.com/FolkodeGroup/mediapp/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -32,14 +34,22 @@ type AuthHandler struct {
 	db             DBTX
 	generateToken  func(userID string, rolID int) (string, error)
 	verifyPassword func(plain, hash string) bool
+	redisService   *services.RedisService
 }
 
-func NewAuthHandler(logger *zap.Logger, db DBTX) *AuthHandler {
+// NewAuthHandler crea un AuthHandler; opcionalmente se puede pasar un *services.RedisService
+// como tercer parámetro (variádico) para producción. Tests pueden llamar con solo (logger, db).
+func NewAuthHandler(logger *zap.Logger, db DBTX, opts ...*services.RedisService) *AuthHandler {
+	var r *services.RedisService
+	if len(opts) > 0 {
+		r = opts[0]
+	}
 	return &AuthHandler{
 		logger:         logger,
 		db:             db,
 		generateToken:  auth.GenerateToken,
 		verifyPassword: security.CheckPasswordHash,
+		redisService:   r,
 	}
 }
 
@@ -274,6 +284,50 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		"message": "Usuario registrado exitosamente",
 		"id":      userID.String(),
 	})
+}
+
+// RefreshToken maneja la renovación del access token usando un refresh token almacenado en Redis.
+// Es opcional: si no hay redisService configurado devuelve 501.
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	if h.redisService == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "Refresh token no disponible en esta instancia"})
+		return
+	}
+
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token requerido"})
+		return
+	}
+
+	ctx := context.Background()
+	userID, err := h.redisService.Client().Get(ctx, "refresh:"+req.RefreshToken).Result()
+	if err == redis.Nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token inválido o expirado"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno"})
+		return
+	}
+
+	var rolID int
+	err = h.db.QueryRow(ctx, `
+	SELECT rol_id FROM usuarios WHERE id = $1
+`, userID).Scan(&rolID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo obtener el rol del usuario"})
+		return
+	}
+
+	token, err := auth.GenerateToken(userID, rolID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo generar token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"access_token": token})
 }
 
 // ProtectedEndpoint ejemplo de endpoint protegido
