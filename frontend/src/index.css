@@ -156,8 +156,7 @@ button:focus-visible {
 
     .campo-login {
       color: black;
-      text-align: center;
-      margin-right: 12rem;
+
     }
 
     /* Botón de Login (Modo Claro) */
@@ -194,6 +193,13 @@ button:focus-visible {
       color: #374151;
       text-align: center;
       font-size: medium;
-      width: 45%;
+      width: 55%;
       align-self: center;
+    }
+
+    .section-dashboard{
+      display: grid;
+      grid-template-columns: 220px 1fr; /* Sidebar fijo + contenido */
+      min-height: 685px;
+      max-height: 685px;
     }
