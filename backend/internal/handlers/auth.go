@@ -9,6 +9,8 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/auth"
 	"github.com/FolkodeGroup/mediapp/internal/models"
 	"github.com/FolkodeGroup/mediapp/internal/security"
+	"github.com/FolkodeGroup/mediapp/internal/services"
+	"github.com/FolkodeGroup/mediapp/internal/utils" // Corregido: internal/utils
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,14 +18,16 @@ import (
 )
 
 type AuthHandler struct {
-	logger *zap.Logger
-	db     *pgxpool.Pool
+	logger       *zap.Logger
+	db           *pgxpool.Pool
+	redisService *services.RedisService
 }
 
-func NewAuthHandler(logger *zap.Logger, db *pgxpool.Pool) *AuthHandler {
+func NewAuthHandler(logger *zap.Logger, db *pgxpool.Pool, redisService *services.RedisService) *AuthHandler {
 	return &AuthHandler{
-		logger: logger,
-		db:     db,
+		logger:       logger,
+		db:           db,
+		redisService: redisService,
 	}
 }
 
@@ -42,11 +46,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Usamos el logger del handler en lugar de obtenerlo del contexto
 	log := h.logger
 
+	// Obtener la IP real del cliente
+	clientIP := utils.GetRealIP(c.Request)
+
 	// Pero si quieres mantener el request_id, puedes hacer:
 	if requestID, exists := c.Get("request_id"); exists {
 		if id, ok := requestID.(string); ok {
 			log = h.logger.With(zap.String("request_id", id))
 		}
+	}
+
+	// Verificar si la IP está bloqueada
+	blocked, err := h.redisService.IsIPBlocked(clientIP)
+	if err != nil {
+		log.Error("Error verificando si IP está bloqueada", zap.Error(err), zap.String("ip", clientIP))
+		// Continuar con el proceso normal en caso de error de Redis
+	} else if blocked {
+		log.Warn("Intento de login desde IP bloqueada", zap.String("ip", clientIP))
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "Demasiados intentos fallidos. IP bloqueada temporalmente.",
+		})
+		return
 	}
 
 	var loginReq struct {
@@ -61,7 +81,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	log.Info("Intento de login",
 		zap.String("email", loginReq.Email),
-		zap.String("ip", c.ClientIP()))
+		zap.String("ip", clientIP)) // Usar clientIP en lugar de c.ClientIP()
 
 	var user models.Usuario
 	var passwordHash string
@@ -69,7 +89,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var ultimoLogin *time.Time
 
 	// ACTUALIZAR la consulta para incluir los nuevos campos
-	err := h.db.QueryRow(c.Request.Context(), `
+	err = h.db.QueryRow(c.Request.Context(), `
         SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, 
                activo, creado_en, intentos_fallidos, ultimo_login
         FROM usuarios 
@@ -81,13 +101,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	)
 
 	if err == sql.ErrNoRows {
-		h.logger.Warn("Intento de login fallido - usuario no encontrado",
+		// Incrementar intentos fallidos en Redis
+		attempts, err := h.redisService.IncrementLoginAttempts(clientIP)
+		if err != nil {
+			log.Error("Error incrementando intentos fallidos en Redis", zap.Error(err), zap.String("ip", clientIP))
+		} else if attempts >= services.MaxLoginAttempts {
+			// Bloquear la IP
+			err = h.redisService.BlockIP(clientIP)
+			if err != nil {
+				log.Error("Error bloqueando IP", zap.Error(err), zap.String("ip", clientIP))
+			}
+		}
+
+		log.Warn("Intento de login fallido - usuario no encontrado",
 			zap.String("email", loginReq.Email),
-			zap.String("ip", c.ClientIP()))
+			zap.String("ip", clientIP))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
 		return
 	} else if err != nil {
-		h.logger.Error("Error al buscar usuario en la base de datos",
+		log.Error("Error al buscar usuario en la base de datos",
 			zap.Error(err),
 			zap.String("email", loginReq.Email))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
@@ -96,11 +128,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Verificar si la cuenta está bloqueada por demasiados intentos (más de 5)
 	if intentosFallidos >= 5 {
-		h.logger.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
+		log.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
 			zap.String("email", loginReq.Email),
 			zap.String("user_id", user.ID.String()),
 			zap.Int("intentos_fallidos", intentosFallidos),
-			zap.String("ip", c.ClientIP()))
+			zap.String("ip", clientIP))
 
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Cuenta temporalmente bloqueada por demasiados intentos fallidos. Contacte al administrador.",
@@ -110,23 +142,33 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Verificar la contraseña
 	if !security.CheckPasswordHash(loginReq.Password, passwordHash) {
-		// INCREMENTAR intentos fallidos
+		// INCREMENTAR intentos fallidos en Redis
+		attempts, err := h.redisService.IncrementLoginAttempts(clientIP)
+		if err != nil {
+			log.Error("Error incrementando intentos fallidos en Redis", zap.Error(err), zap.String("ip", clientIP))
+		} else if attempts >= services.MaxLoginAttempts {
+			// Bloquear la IP
+			err = h.redisService.BlockIP(clientIP)
+			if err != nil {
+				log.Error("Error bloqueando IP", zap.Error(err), zap.String("ip", clientIP))
+			}
+		}
+
+		// También actualizar en la base de datos (mantener compatibilidad)
 		newAttempts := intentosFallidos + 1
-		_, err := h.db.Exec(c.Request.Context(), `
+		_, err = h.db.Exec(c.Request.Context(), `
             UPDATE usuarios 
             SET intentos_fallidos = $1 
             WHERE email = $2
         `, newAttempts, loginReq.Email)
 
 		if err != nil {
-			h.logger.Error("Error al actualizar intentos fallidos",
-				zap.Error(err),
-				zap.String("email", loginReq.Email))
+			log.Error("Error al actualizar intentos fallidos", zap.Error(err), zap.String("email", loginReq.Email))
 		}
 
-		h.logger.Warn("Intento de login fallido - contraseña incorrecta",
+		log.Warn("Intento de login fallido - contraseña incorrecta",
 			zap.String("email", loginReq.Email),
-			zap.String("ip", c.ClientIP()),
+			zap.String("ip", clientIP),
 			zap.Int("intentos_fallidos", newAttempts))
 
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -134,6 +176,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"intentos_restantes": 5 - newAttempts, // Asumiendo bloqueo después de 5 intentos
 		})
 		return
+	}
+
+	// LOGIN EXITOSO - Reiniciar intentos en Redis y en base de datos
+	err = h.redisService.ResetLoginAttempts(clientIP)
+	if err != nil {
+		log.Error("Error reiniciando intentos fallidos en Redis", zap.Error(err), zap.String("ip", clientIP))
 	}
 
 	// LOGIN EXITOSO - Reiniciar intentos y actualizar último login
@@ -145,7 +193,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
     `, now, loginReq.Email)
 
 	if err != nil {
-		h.logger.Error("Error al actualizar datos de login exitoso",
+		log.Error("Error al actualizar datos de login exitoso",
 			zap.Error(err),
 			zap.String("email", loginReq.Email))
 		// No retornamos error aquí, solo loggeamos
@@ -154,7 +202,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Generar token JWT
 	token, err := auth.GenerateToken(user.ID.String(), user.RolID)
 	if err != nil {
-		h.logger.Error("Error al generar token",
+		log.Error("Error al generar token",
 			zap.Error(err),
 			zap.String("user_id", user.ID.String()))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al generar token"})
@@ -162,10 +210,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Log exitoso con información relevante
-	h.logger.Info("Login exitoso",
+	log.Info("Login exitoso",
 		zap.String("user_id", user.ID.String()),
 		zap.String("email", user.Email),
-		zap.String("ip", c.ClientIP()),
+		zap.String("ip", clientIP),
 		zap.Time("ultimo_login", now),
 		zap.Int("rol_id", user.RolID))
 
