@@ -128,11 +128,19 @@ docker compose version
 ---
 
 ## 🛠️ Herramientas de Desarrollo
-- **Hot Reload**:
-  - Backend: Configurado con `Air` para recargar automáticamente al detectar cambios en archivos `.go`.
-  - Frontend: Configurado con Vite para recargar automáticamente al detectar cambios en `src/`.
+## 🛠️ Herramientas de Desarrollo
+### 🚦 Notificación al equipo sobre monitoreo
 
-- **Health Checks**:
+> 🚦 **Monitoreo disponible en entorno de desarrollo**
+>
+> - El endpoint de health check del backend está disponible en:  
+>   [http://localhost:8080/health](http://localhost:8080/health)
+> - Los logs del backend pueden consultarse ejecutando:  
+>   `docker compose -f docker-compose.dev.yml logs -f`
+>
+> Por favor, utilicen estos recursos para verificar el estado del sistema y reportar cualquier anomalía.  
+> Si tienes dudas sobre cómo acceder, revisa la sección correspondiente en este documento.
+
   - Backend: [http://localhost:8080/health](http://localhost:8080/health)
 
 - **Testing**:
@@ -192,8 +200,59 @@ docker compose version
 
 ---
 
+
 ## 🌐 URLs de Desarrollo
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **Backend API**: [http://localhost:8080](http://localhost:8080)
 - **Health Check**: [http://localhost:8080/health](http://localhost:8080/health)
 - **Swagger Docs**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
+
+---
+
+## 🚦 Verificación de CI/CD y Alertas (GitHub Actions)
+
+### 1. Forzar un error controlado en CI/CD
+
+Para comprobar que la integración y entrega continua detectan fallos y notifican correctamente:
+
+1. Crea una rama de prueba desde `develop` o `main`:
+   ```bash
+   git checkout -b test/ci-fail
+   ```
+2. Edita cualquier archivo de código y agrega un error sintáctico o de test (por ejemplo, elimina un paréntesis o haz que un test falle a propósito).
+3. Haz commit y push:
+   ```bash
+   git add .
+   git commit -m "Forzando error para probar CI/CD"
+   git push origin test/ci-fail
+   ```
+4. Abre un Pull Request si lo deseas.
+
+### 2. Qué esperar en la alerta
+
+Si el pipeline falla, se enviará una alerta automática al canal de Discord configurado, con el mensaje:
+
+```
+❌ Build falló
+Repositorio: FolkodeGroup/mediapp
+Branch: test/ci-fail
+Autor: <usuario>
+Cobertura Backend: <valor>
+Cobertura Frontend: <valor>
+```
+
+### 3. Confirmar que los tests pasan en la rama principal
+
+Cada push a `main` y `develop` ejecuta los tests de backend y frontend automáticamente. Puedes ver el estado en la pestaña **Actions** de GitHub.
+
+### 4. Documentar el proceso y resultados
+
+Cuando termines la prueba, elimina la rama de prueba y deja constancia (en este archivo o en un issue) de la fecha y resultado de la verificación.
+
+---
+
+**Ejemplo de resultado esperado:**
+
+- Se fuerza un error → el pipeline falla → llega alerta a Discord → se corrige el error → el pipeline pasa en develop/main.
+
+---

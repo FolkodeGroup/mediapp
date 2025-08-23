@@ -12,7 +12,6 @@
 ### Listar Pacientes
 ```http
 GET /api/v1/pacientes
-```
 
 **Respuesta:**
 ```json
@@ -33,7 +32,6 @@ GET /api/v1/pacientes
     }
   ],
   "total": 0
-}
 ```
 
 ### Obtener Paciente Específico
@@ -46,7 +44,6 @@ GET /api/v1/pacientes/{id}
 
 **Respuesta:**
 ```json
-{
   "status": "success",
   "paciente": {
     "id": "uuid",
@@ -136,21 +133,8 @@ GET /api/v1/inspect/tables?table={tableName}
 **Parámetros:**
 - `table` (query): Nombre de la tabla (default: pacientes)
 
-**Tablas permitidas:**
 - `auditorias`
 - `consultorios`
-- `datos_personales`
-- `historia_clinica_version`
-- `historias_clinicas`
-- `pacientes`
-- `permisos`
-- `recetas_medicas`
-- `rol_permiso`
-- `roles`
-- `turnos`
-- `usuarios`
-
-**Respuesta:**
 ```json
 {
   "status": "success",

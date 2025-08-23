@@ -3,13 +3,135 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
+
+func (h *PacienteHandler) CreatePaciente(c *gin.Context) {
+	var input Paciente
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	id := uuid.New().String()
+	creadoEn := time.Now().UTC().Format(time.RFC3339)
+
+	query := `
+	       INSERT INTO pacientes (id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en)
+	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       `
+	_, err := h.pool.Exec(ctx, query,
+		id,
+		input.Nombre,
+		input.Apellido,
+		input.FechaNacimiento,
+		input.NroCredencial,
+		input.ObraSocial,
+		input.CondicionIVA,
+		input.Plan,
+		input.CreadoPorUsuario,
+		input.ConsultorioID,
+		creadoEn,
+	)
+	if err != nil {
+		h.logger.Error("Error al crear paciente", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear el paciente", "detalle": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Paciente creado exitosamente",
+		"id":      id,
+	})
+}
+
+// UpdatePaciente godoc
+// @Summary      Actualizar paciente
+// @Description  Actualiza los datos de un paciente existente
+// @Tags         pacientes
+// @Accept       json
+// @Produce      json
+// @Param        id        path     string  true  "ID del paciente"
+// @Param        paciente  body     object  true  "Datos del paciente"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes/{id} [put]
+func (h *PacienteHandler) UpdatePaciente(c *gin.Context) {
+	id := c.Param("id")
+	var input Paciente
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := `
+	       UPDATE pacientes SET nombre=$1, apellido=$2, fecha_nacimiento=$3, nro_credencial=$4, obra_social=$5, condicion_iva=$6, plan=$7, creado_por_usuario=$8, consultorio_id=$9
+	       WHERE id=$10
+       `
+	res, err := h.pool.Exec(ctx, query,
+		input.Nombre,
+		input.Apellido,
+		input.FechaNacimiento,
+		input.NroCredencial,
+		input.ObraSocial,
+		input.CondicionIVA,
+		input.Plan,
+		input.CreadoPorUsuario,
+		input.ConsultorioID,
+		id,
+	)
+	if err != nil {
+		h.logger.Error("Error al actualizar paciente", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el paciente", "detalle": err.Error()})
+		return
+	}
+	if res.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Paciente no encontrado"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Paciente actualizado exitosamente"})
+}
+
+// DeletePaciente godoc
+// @Summary      Eliminar paciente
+// @Description  Elimina un paciente por ID
+// @Tags         pacientes
+// @Produce      json
+// @Param        id   path      string  true  "ID del paciente"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes/{id} [delete]
+func (h *PacienteHandler) DeletePaciente(c *gin.Context) {
+	id := c.Param("id")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := `DELETE FROM pacientes WHERE id=$1`
+	res, err := h.pool.Exec(ctx, query, id)
+	if err != nil {
+		h.logger.Error("Error al eliminar paciente", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar el paciente", "detalle": err.Error()})
+		return
+	}
+	if res.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Paciente no encontrado"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Paciente eliminado exitosamente"})
+}
 
 // PacienteHandler maneja las operaciones relacionadas con pacientes
 type PacienteHandler struct {
@@ -25,20 +147,19 @@ func NewPacienteHandler(pool *pgxpool.Pool, logger *zap.Logger) *PacienteHandler
 	}
 }
 
-// Paciente representa la estructura de un paciente según Supabase
+// Paciente representa la estructura de la tabla 'pacientes' normalizada
 type Paciente struct {
-	ID                 int       `json:"id" db:"id"`
-	NroDocumento       string    `json:"nro_documento" db:"nro_documento"`
-	TipoDocumento      string    `json:"tipo_documento" db:"tipo_documento"`
-	Nombre             string    `json:"nombre" db:"nombre"`
-	Apellido           string    `json:"apellido" db:"apellido"`
-	FechaNacimiento    time.Time `json:"fecha_nacimiento" db:"fecha_nacimiento"`
-	Email              string    `json:"email" db:"email"`
-	Telefono           *string   `json:"telefono" db:"telefono"`
-	Direccion          *string   `json:"direccion" db:"direccion"`
-	EstadoCivil        *string   `json:"estado_civil" db:"estado_civil"`
-	FechaCreacion      time.Time `json:"fecha_creacion" db:"fecha_creacion"`
-	FechaActualizacion time.Time `json:"fecha_actualizacion" db:"fecha_actualizacion"`
+	ID               string  `json:"id" db:"id"`
+	Nombre           string  `json:"nombre" db:"nombre"`
+	Apellido         string  `json:"apellido" db:"apellido"`
+	FechaNacimiento  string  `json:"fecha_nacimiento" db:"fecha_nacimiento"`
+	NroCredencial    *string `json:"nro_credencial,omitempty" db:"nro_credencial"`
+	ObraSocial       *string `json:"obra_social,omitempty" db:"obra_social"`
+	CondicionIVA     *string `json:"condicion_iva,omitempty" db:"condicion_iva"`
+	Plan             *string `json:"plan,omitempty" db:"plan"`
+	CreadoPorUsuario *string `json:"creado_por_usuario,omitempty" db:"creado_por_usuario"`
+	ConsultorioID    *string `json:"consultorio_id,omitempty" db:"consultorio_id"`
+	CreadoEn         string  `json:"creado_en" db:"creado_en"`
 }
 
 // GetPacientes godoc
@@ -53,13 +174,11 @@ func (h *PacienteHandler) GetPacientes(c *gin.Context) {
 	defer cancel()
 
 	query := `
-		SELECT 
-			id, nro_documento, tipo_documento, nombre, apellido, 
-			fecha_nacimiento, email, telefono, direccion, estado_civil,
-			fecha_creacion, fecha_actualizacion
-		FROM pacientes 
-		ORDER BY fecha_creacion DESC
-	`
+	       SELECT 
+		       id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en
+	       FROM pacientes 
+	       ORDER BY creado_en DESC
+       `
 
 	rows, err := h.pool.Query(ctx, query)
 	if err != nil {
@@ -71,17 +190,33 @@ func (h *PacienteHandler) GetPacientes(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var pacientes []Paciente
+	pacientes := make([]Paciente, 0)
 	for rows.Next() {
-		var p Paciente
+		var (
+			id, creadoPorUsuario, consultorioID           [16]byte
+			nombre, apellido                              string
+			fechaNacimiento, creadoEn                     time.Time
+			nroCredencial, obraSocial, condicionIVA, plan *string
+		)
 		err := rows.Scan(
-			&p.ID, &p.NroDocumento, &p.TipoDocumento, &p.Nombre, &p.Apellido,
-			&p.FechaNacimiento, &p.Email, &p.Telefono, &p.Direccion, &p.EstadoCivil,
-			&p.FechaCreacion, &p.FechaActualizacion,
+			&id, &nombre, &apellido, &fechaNacimiento, &nroCredencial, &obraSocial, &condicionIVA, &plan, &creadoPorUsuario, &consultorioID, &creadoEn,
 		)
 		if err != nil {
 			h.logger.Error("Error al escanear paciente", zap.Error(err))
 			continue
+		}
+		p := Paciente{
+			ID:               uuid.UUID(id).String(),
+			Nombre:           nombre,
+			Apellido:         apellido,
+			FechaNacimiento:  fechaNacimiento.Format("2006-01-02"),
+			NroCredencial:    nroCredencial,
+			ObraSocial:       obraSocial,
+			CondicionIVA:     condicionIVA,
+			Plan:             plan,
+			CreadoPorUsuario: ptrString(uuid.UUID(creadoPorUsuario).String()),
+			ConsultorioID:    ptrString(uuid.UUID(consultorioID).String()),
+			CreadoEn:         creadoEn.Format(time.RFC3339),
 		}
 		pacientes = append(pacientes, p)
 	}
@@ -91,6 +226,11 @@ func (h *PacienteHandler) GetPacientes(c *gin.Context) {
 		"pacientes": pacientes,
 		"total":     len(pacientes),
 	})
+}
+
+// Función auxiliar para convertir string a *string
+func ptrString(s string) *string {
+	return &s
 }
 
 // GetPaciente godoc
@@ -103,33 +243,26 @@ func (h *PacienteHandler) GetPacientes(c *gin.Context) {
 // @Router       /api/v1/pacientes/{id} [get]
 func (h *PacienteHandler) GetPaciente(c *gin.Context) {
 	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "ID de paciente inválido",
-		})
-		return
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
-		SELECT 
-			id, nro_documento, tipo_documento, nombre, apellido, 
-			fecha_nacimiento, email, telefono, direccion, estado_civil,
-			fecha_creacion, fecha_actualizacion
-		FROM pacientes 
-		WHERE id = $1
-	`
+	       SELECT 
+		       id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en
+	       FROM pacientes 
+	       WHERE id = $1
+       `
 
-	var p Paciente
-	err = h.pool.QueryRow(ctx, query, id).Scan(
-		&p.ID, &p.NroDocumento, &p.TipoDocumento, &p.Nombre, &p.Apellido,
-		&p.FechaNacimiento, &p.Email, &p.Telefono, &p.Direccion, &p.EstadoCivil,
-		&p.FechaCreacion, &p.FechaActualizacion,
+	var (
+		id, creadoPorUsuario, consultorioID           [16]byte
+		nombre, apellido                              string
+		fechaNacimiento, creadoEn                     time.Time
+		nroCredencial, obraSocial, condicionIVA, plan *string
 	)
-
+	err := h.pool.QueryRow(ctx, query, idParam).Scan(
+		&id, &nombre, &apellido, &fechaNacimiento, &nroCredencial, &obraSocial, &condicionIVA, &plan, &creadoPorUsuario, &consultorioID, &creadoEn,
+	)
 	if err != nil {
 		h.logger.Error("Error al consultar paciente", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{
@@ -137,7 +270,19 @@ func (h *PacienteHandler) GetPaciente(c *gin.Context) {
 		})
 		return
 	}
-
+	p := Paciente{
+		ID:               uuid.UUID(id).String(),
+		Nombre:           nombre,
+		Apellido:         apellido,
+		FechaNacimiento:  fechaNacimiento.Format("2006-01-02"),
+		NroCredencial:    nroCredencial,
+		ObraSocial:       obraSocial,
+		CondicionIVA:     condicionIVA,
+		Plan:             plan,
+		CreadoPorUsuario: ptrString(uuid.UUID(creadoPorUsuario).String()),
+		ConsultorioID:    ptrString(uuid.UUID(consultorioID).String()),
+		CreadoEn:         creadoEn.Format(time.RFC3339),
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status":   "success",
 		"paciente": p,
