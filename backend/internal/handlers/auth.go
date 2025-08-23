@@ -40,26 +40,30 @@ type AuthHandler struct {
 // NewAuthHandler crea un AuthHandler; opcionalmente se puede pasar un *services.RedisService
 // como tercer parámetro (variádico) para producción. Tests pueden llamar con solo (logger, db).
 // NewAuthHandler crea un AuthHandler sin Redis (uso en tests y en entornos sin Redis)
-func NewAuthHandler(logger *zap.Logger, db DBTX) *AuthHandler {
+// NewAuthHandler crea un AuthHandler; opcionalmente se puede pasar un *services.RedisService
+// como tercer parámetro (variádico) para compatibilidad con llamadas anteriores que
+// pasaban (logger, db, redisSvc). Tests pueden llamar con solo (logger, db).
+func NewAuthHandler(logger *zap.Logger, db DBTX, redisSvc ...*services.RedisService) *AuthHandler {
+	var rs *services.RedisService
+	if len(redisSvc) > 0 {
+		rs = redisSvc[0]
+	}
+
 	return &AuthHandler{
 		logger:         logger,
 		db:             db,
 		generateToken:  auth.GenerateToken,
 		verifyPassword: security.CheckPasswordHash,
-		redisService:   nil,
+		redisService:   rs,
 	}
 }
 
 // NewAuthHandlerWithRedis crea un AuthHandler incluyendo un servicio de Redis.
 // Mantiene compatibilidad con el entrypoint del servidor que inicializa Redis.
+// NewAuthHandlerWithRedis crea un AuthHandler incluyendo un servicio de Redis.
+// Mantiene compatibilidad con el entrypoint del servidor que inicializa Redis.
 func NewAuthHandlerWithRedis(logger *zap.Logger, db DBTX, redisSvc *services.RedisService) *AuthHandler {
-	return &AuthHandler{
-		logger:         logger,
-		db:             db,
-		generateToken:  auth.GenerateToken,
-		verifyPassword: security.CheckPasswordHash,
-		redisService:   redisSvc,
-	}
+	return NewAuthHandler(logger, db, redisSvc)
 }
 
 // Login godoc
