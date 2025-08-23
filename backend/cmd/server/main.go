@@ -19,6 +19,7 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/handlers"
 	"github.com/FolkodeGroup/mediapp/internal/logger"
 	"github.com/FolkodeGroup/mediapp/internal/middleware"
+	"github.com/FolkodeGroup/mediapp/internal/services"
 
 	_ "github.com/FolkodeGroup/mediapp/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -51,6 +52,13 @@ func main() {
 		}
 	}()
 
+	// Inicializar Redis
+	redisClient := config.InitRedis(logger.L())
+	defer redisClient.Close()
+
+	// Inicializar servicio de Redis
+	redisService := services.NewRedisService(redisClient, logger.L())
+
 	//  Ejecutar migración para campos de login
 	if err := db.AddLoginFields(pool, logger.L()); err != nil {
 		logger.L().Error("Error en migración de campos de login", zap.Error(err))
@@ -65,7 +73,7 @@ func main() {
 	}
 
 	// Crear handlers
-	authHandler := handlers.NewAuthHandler(logger.L(), pool)
+	authHandler := handlers.NewAuthHandler(logger.L(), pool, redisService)
 	pacienteHandler := handlers.NewPacienteHandler(pool, logger.L())
 
 	// Crear router
@@ -76,7 +84,8 @@ func main() {
 	// Middlewares
 	router.Use(middleware.RequestIDMiddleware(logger.L()))
 	router.Use(middleware.LoggingMiddleware())
-	router.Use(gin.Recovery()) // Puedes mantener este o mejorarlo también
+	router.Use(middleware.RateLimitMiddleware()) // Agregar rate limiting
+	router.Use(gin.Recovery())                   // Puedes mantener este o mejorarlo también
 
 	// Rutas públicas
 	router.GET("/", func(c *gin.Context) {
@@ -95,10 +104,13 @@ func main() {
 	// Health check real con acceso a pool de DB
 	router.GET("/health", handlers.HealthCheck(pool))
 
-	// Rutas de autenticación
-	router.POST("/register", authHandler.Register)
-	router.POST("/login", authHandler.Login)
-	router.GET("/protected", authHandler.ProtectedEndpoint)
+	// Rutas de autenticación (protegidas por rate limiting)
+	authRoutes := router.Group("/")
+	{
+		authRoutes.POST("/register", authHandler.Register)
+		authRoutes.POST("/login", authHandler.Login)
+		authRoutes.GET("/protected", authHandler.ProtectedEndpoint)
+	}
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
