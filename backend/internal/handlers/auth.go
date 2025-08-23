@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/FolkodeGroup/mediapp/internal/services"
 	"github.com/FolkodeGroup/mediapp/internal/utils" // Corregido: internal/utils
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -209,6 +211,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Generar refresh token UUID
+	refreshToken := uuid.New().String()
+
+	// Guardar en Redis con TTL de 7 días
+	ctx := context.Background()
+	ttl := 7 * 24 * time.Hour // 7 días
+	err = h.redisService.Client().Set(ctx, "refresh:"+refreshToken, user.ID.String(), ttl).Err()
+	if err == redis.Nil {
+		log.Error("Error guardando refresh token en Redis", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el refresh token"})
+		return
+	}
+
+	// Respuesta exitosa con access y refresh token
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Login exitoso",
+		"token":         token,
+		"refresh_token": refreshToken,
+		"user": gin.H{
+			"id":             user.ID.String(),
+			"nombre":         user.Nombre,
+			"email":          user.Email,
+			"rol_id":         user.RolID,
+			"consultorio_id": user.ConsultorioID,
+			"activo":         user.Activo,
+			"creado_en":      user.CreadoEn,
+		},
+		"expires": time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+	})
+
 	// Log exitoso con información relevante
 	log.Info("Login exitoso",
 		zap.String("user_id", user.ID.String()),
@@ -245,6 +277,48 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /register [post]
+
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token requerido"})
+		return
+	}
+
+	ctx := context.Background()
+	userID, err := h.redisService.Client().Get(ctx, "refresh:"+req.RefreshToken).Result()
+	if err == redis.Nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token inválido o expirado"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno"})
+		return
+	}
+
+	// Aquí podrías obtener el rol del usuario si lo necesitas
+	// rolID := ... (consulta a la base de datos)
+
+	var rolID int
+	err = h.db.QueryRow(ctx, `
+    SELECT rol_id FROM usuarios WHERE id = $1
+`, userID).Scan(&rolID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo obtener el rol del usuario"})
+		return
+	}
+
+	// Genera nuevo access token
+	token, err := auth.GenerateToken(userID, rolID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo generar token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"access_token": token})
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var input struct {
 		Nombre        string `json:"nombre" binding:"required"`

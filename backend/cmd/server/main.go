@@ -109,6 +109,7 @@ func main() {
 	{
 		authRoutes.POST("/register", authHandler.Register)
 		authRoutes.POST("/login", authHandler.Login)
+		authRoutes.POST("/refresh", authHandler.RefreshToken)
 		authRoutes.GET("/protected", authHandler.ProtectedEndpoint)
 	}
 
