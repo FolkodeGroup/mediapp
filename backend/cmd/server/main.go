@@ -73,7 +73,10 @@ func main() {
 	}
 
 	// Crear handlers
-	authHandler := handlers.NewAuthHandler(logger.L(), pool, redisService)
+	// Usar el constructor con Redis cuando exista redisService para mantener
+	// la funcionalidad de refresh token; en entornos de tests se puede usar
+	// el constructor sin Redis.
+	authHandler := handlers.NewAuthHandlerWithRedis(logger.L(), pool, redisService)
 	pacienteHandler := handlers.NewPacienteHandler(pool, logger.L())
 
 	// Crear router
