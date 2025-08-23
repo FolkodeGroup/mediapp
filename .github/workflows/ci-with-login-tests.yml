@@ -1,0 +1,336 @@
+name: CI Pipeline with Login Tests
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+  pull_request:
+    branches:
+      - develop
+      - staging
+  workflow_dispatch:
+
+jobs:
+  build-test-and-login:
+    runs-on: ubuntu-latest
+    services:
+      vault:
+        image: hashicorp/vault:1.15
+        ports:
+          - 8201:8200
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5433
+      DB_NAME: test_db
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      VAULT_ADDR: http://localhost:8201
+      VAULT_TOKEN: root
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: go mod tidy
+
+      - name: Build backend
+        working-directory: backend/cmd/server
+        run: go build -v .
+
+      - name: Test backend with coverage
+        id: backend_tests
+        working-directory: backend
+        run: |
+          go test ./... -v -coverprofile=coverage.out -tags='!integration'
+          go tool cover -func=coverage.out | tee coverage.txt
+          COV=$(grep total: coverage.txt | awk '{print $3}')
+          echo "backend_coverage=$COV" >> $GITHUB_ENV
+
+      - name: Install Vault CLI
+        run: |
+          wget -O vault.zip https://releases.hashicorp.com/vault/1.15.6/vault_1.15.6_linux_amd64.zip
+          unzip vault.zip
+          sudo mv vault /usr/local/bin/
+          rm vault.zip
+          vault version
+
+      - name: Configure Vault
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:8201/v1/sys/health | grep '"initialized":true'; then
+              echo "Vault ready" && break
+            fi
+            sleep 2
+          done
+          export VAULT_ADDR='http://localhost:8201'
+          export VAULT_TOKEN='root'
+          vault kv put secret/mediapp JWT_SECRET_KEY=supersecreto123
+
+      - name: Run Vault integration tests
+        run: go test -tags=integration ./internal/config
+        working-directory: ./backend
+
+      - name: Prepare database for login tests
+        run: |
+          sleep 5
+          PGPASSWORD=test_password psql -h localhost -p 5433 -U test_user -d test_db -c "
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            email VARCHAR(100) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          INSERT INTO users (username, email, password_hash) 
+          VALUES ('testuser', 'test@example.com', '\$2a\$10\$rQYQvHxMd.KQP8e9jN8l6.XQZQaQ8L1vQ9l6JQN8l6XQZQaQ8L1vQ')
+          ON CONFLICT (username) DO NOTHING;
+          "
+
+      - name: Start server for tests
+        working-directory: backend/cmd/server
+        run: |
+          export DB_HOST=localhost
+          export DB_PORT=5433
+          export DB_NAME=test_db
+          export DB_USER=test_user
+          export DB_PASSWORD=test_password
+          export VAULT_ADDR=http://localhost:8201
+          export VAULT_TOKEN=root
+          export PORT=8080
+          
+          ./server &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/health 2>/dev/null; then
+              echo "Server ready on port 8080"
+              break
+            fi
+            echo "Waiting for server... ($i/30)"
+            sleep 2
+          done
+
+      - name: Test Login - Valid credentials
+        id: test_valid_login
+        run: |
+          echo "Testing valid credentials..."
+          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
+            http://localhost:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{
+              "username": "testuser",
+              "password": "testpass123"
+            }')
+          
+          HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//g')
+          
+          echo "Response Code: $HTTP_CODE"
+          echo "Response Body: $BODY"
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "valid_login_status=PASSED" >> $GITHUB_ENV
+          else
+            echo "valid_login_status=FAILED (HTTP $HTTP_CODE)" >> $GITHUB_ENV
+            echo "valid_login_error=Expected 200, got $HTTP_CODE" >> $GITHUB_ENV
+          fi
+
+      - name: Test Login - Invalid credentials
+        id: test_invalid_login
+        run: |
+          echo "Testing invalid credentials..."
+          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
+            http://localhost:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{
+              "username": "testuser",
+              "password": "wrongpassword"
+            }')
+          
+          HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          
+          echo "Response Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+            echo "invalid_login_status=PASSED" >> $GITHUB_ENV
+          else
+            echo "invalid_login_status=FAILED (HTTP $HTTP_CODE)" >> $GITHUB_ENV
+            echo "invalid_login_error=Expected 401/403, got $HTTP_CODE" >> $GITHUB_ENV
+          fi
+
+      - name: Test Login - Nonexistent user
+        id: test_nonexistent_login
+        run: |
+          echo "Testing nonexistent user..."
+          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
+            http://localhost:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{
+              "username": "nonexistent",
+              "password": "anypassword"
+            }')
+          
+          HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          
+          echo "Response Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "404" ]; then
+            echo "nonexistent_login_status=PASSED" >> $GITHUB_ENV
+          else
+            echo "nonexistent_login_status=FAILED (HTTP $HTTP_CODE)" >> $GITHUB_ENV
+            echo "nonexistent_login_error=Expected 401/404, got $HTTP_CODE" >> $GITHUB_ENV
+          fi
+
+      - name: Cleanup server
+        if: always()
+        run: |
+          if [ ! -z "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Test frontend with coverage
+        id: frontend_tests
+        working-directory: frontend
+        run: |
+          npm test -- --coverage --watchAll=false
+          COV=$(grep 'All files' coverage/lcov-report/index.html | grep -o '[0-9]\+%' | head -n 1 || echo "N/A")
+          echo "frontend_coverage=$COV" >> $GITHUB_ENV
+
+      - name: Evaluate login test results
+        run: |
+          TOTAL_TESTS=3
+          PASSED_TESTS=0
+          FAILED_DETAILS=""
+          
+          [[ "$valid_login_status" == *"PASSED"* ]] && ((PASSED_TESTS++))
+          [[ "$invalid_login_status" == *"PASSED"* ]] && ((PASSED_TESTS++))
+          [[ "$nonexistent_login_status" == *"PASSED"* ]] && ((PASSED_TESTS++))
+          
+          [[ "$valid_login_status" == *"FAILED"* ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Valid login: $valid_login_error"
+          [[ "$invalid_login_status" == *"FAILED"* ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Invalid login: $invalid_login_error"
+          [[ "$nonexistent_login_status" == *"FAILED"* ]] && FAILED_DETAILS="$FAILED_DETAILS\n• Nonexistent user: $nonexistent_login_error"
+          
+          echo "login_tests_passed=$PASSED_TESTS" >> $GITHUB_ENV
+          echo "login_tests_total=$TOTAL_TESTS" >> $GITHUB_ENV
+          echo "login_failed_details<<EOF" >> $GITHUB_ENV
+          echo -e "$FAILED_DETAILS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          BUILD_STATUS="${{ job.status }}"
+          LOGIN_PASSED="${{ env.login_tests_passed }}"
+          LOGIN_TOTAL="${{ env.login_tests_total }}"
+          
+          if [ "$BUILD_STATUS" = "success" ] && [ "$LOGIN_PASSED" = "$LOGIN_TOTAL" ]; then
+            STATUS="Build y Login Tests - TODO OK"
+            COLOR=3066993
+          else
+            STATUS="Build o Login Tests - HAY FALLOS"
+            COLOR=15158332
+          fi
+          
+          LOGIN_SUMMARY="Login Tests: $LOGIN_PASSED/$LOGIN_TOTAL pasaron\\n"
+          LOGIN_SUMMARY="$LOGIN_SUMMARY• Credenciales validas: $valid_login_status\\n"
+          LOGIN_SUMMARY="$LOGIN_SUMMARY• Credenciales invalidas: $invalid_login_status\\n"
+          LOGIN_SUMMARY="$LOGIN_SUMMARY• Usuario inexistente: $nonexistent_login_status"
+          
+          if [ ! -z "${{ env.login_failed_details }}" ]; then
+            LOGIN_SUMMARY="$LOGIN_SUMMARY\\n\\nDetalles de fallos:${{ env.login_failed_details }}"
+          fi
+          
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"username\": \"CI Pipeline [LOGIN TESTS]\",
+                 \"embeds\": [{
+                   \"title\": \"$STATUS\",
+                   \"color\": $COLOR,
+                   \"fields\": [
+                     {\"name\": \"Repo\", \"value\": \"${{ github.repository }}\", \"inline\": true},
+                     {\"name\": \"Branch\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
+                     {\"name\": \"Autor\", \"value\": \"${{ github.actor }}\", \"inline\": true},
+                     {\"name\": \"Backend Coverage\", \"value\": \"${{ env.backend_coverage }}\", \"inline\": true},
+                     {\"name\": \"Frontend Coverage\", \"value\": \"${{ env.frontend_coverage }}\", \"inline\": true},
+                     {\"name\": \"Ver Logs\", \"value\": \"[Click aqui](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": true}
+                   ],
+                   \"description\": \"$LOGIN_SUMMARY\",
+                   \"footer\": {\"text\": \"Pipeline con Login Tests\"},
+                   \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  critical-alert:
+    needs: build-test-and-login
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Critical failure alert
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"username\": \"SISTEMA DE ALERTAS\",
+                 \"content\": \"@here FALLO CRITICO EN PIPELINE CON LOGIN TESTS\",
+                 \"embeds\": [{
+                   \"title\": \"ACCION REQUERIDA INMEDIATAMENTE\",
+                   \"color\": 16711680,
+                   \"fields\": [
+                     {\"name\": \"Repositorio\", \"value\": \"${{ github.repository }}\"},
+                     {\"name\": \"Branch\", \"value\": \"${{ github.ref_name }}\"},
+                     {\"name\": \"Responsable\", \"value\": \"${{ github.actor }}\"},
+                     {\"name\": \"Hora\", \"value\": \"$(date)\"},
+                     {\"name\": \"Investigar\", \"value\": \"[Ver logs completos](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"}
+                   ],
+                   \"description\": \"El pipeline con pruebas de login ha fallado. Revisar logs inmediatamente.\",
+                   \"footer\": {\"text\": \"Sistema de monitoreo automatico\"}
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
