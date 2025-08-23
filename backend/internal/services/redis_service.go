@@ -111,3 +111,7 @@ func (r *RedisService) GetLoginAttempts(ip string) (int64, error) {
 	
 	return attempts, nil
 }
+
+func (r *RedisService) Client() *redis.Client {
+    return r.client
+}
