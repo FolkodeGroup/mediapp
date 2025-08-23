@@ -135,7 +135,7 @@ jobs:
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           
           for i in {1..30};
-            if curl -f http://localhost:8080/health 2>/dev/null; then
+            if curl -f http://localhost:8080/health 2>/dev/null;
               echo "Server ready on port 8080"
               break
             fi
@@ -287,7 +287,6 @@ jobs:
             exit 0
           fi
           
-          # Overall Status
           if [ "${{ job.status }}" == "success" ]; then
             STATUS="Build y Tests - TODO OK"
             COLOR=3066993
@@ -296,35 +295,39 @@ jobs:
             COLOR=15158332
           fi
           
-          # API Login Summary
           LOGIN_API_SUMMARY="API Login Tests: ${{ env.login_api_tests_passed }}/${{ env.login_api_tests_total }} pasaron\n• Credenciales validas: ${{ env.valid_login_status }}\n• Credenciales invalidas: ${{ env.invalid_login_status }}\n• Usuario inexistente: ${{ env.nonexistent_login_status }}"
           
-          # Cypress Summary
           CYPRESS_SUMMARY="E2E Login Tests: ${{ env.cypress_status }}"
 
-          # Description
           DESCRIPTION="$LOGIN_API_SUMMARY\n\n$CYPRESS_SUMMARY"
-
-          # Build JSON payload and write to file
-          cat <<EOF > payload.json
-          {
+          DESCRIPTION_ESCAPED=$(echo "$DESCRIPTION" | sed 's/\/\\/g' | sed 's/"/\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
+          JSON_PAYLOAD=$(printf '{ 
             "username": "CI Pipeline [E2E]",
             "embeds": [{
-              "title": "$STATUS",
-              "color": $COLOR,
+              "title": "%s",
+              "color": %s,
               "fields": [
-                {"name": "Repo", "value": "${{ github.repository }}", "inline": true},
-                {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                {"name": "Author", "value": "${{ github.actor }}", "inline": true},
-                {"name": "Backend Coverage", "value": "${{ env.backend_coverage }}", "inline": true},
-                {"name": "Frontend Coverage", "value": "${{ env.frontend_coverage }}", "inline": true},
-                {"name": "Job Status", "value": "${{ job.status }}", "inline": true}
+                {"name": "Repo", "value": "%s", "inline": true},
+                {"name": "Branch", "value": "%s", "inline": true},
+                {"name": "Author", "value": "%s", "inline": true},
+                {"name": "Backend Coverage", "value": "%s", "inline": true},
+                {"name": "Frontend Coverage", "value": "%s", "inline": true},
+                {"name": "Job Status", "value": "%s", "inline": true}
               ],
-              "description": "$DESCRIPTION",
+              "description": "%s",
               "footer": {"text": "Pipeline con Login Tests E2E"}
             }]
-          }
-EOF
+          }' 
+          "$STATUS" 
+          "$COLOR" 
+          "${{ github.repository }}" 
+          "${{ github.ref_name }}" 
+          "${{ github.actor }}" 
+          "${{ env.backend_coverage }}" 
+          "${{ env.frontend_coverage }}" 
+          "${{ job.status }}" 
+          "$DESCRIPTION_ESCAPED"
+          )
 
-          # Send notification
-          curl -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL"
+          curl -H "Content-Type: application/json" -X POST -d "$JSON_PAYLOAD" "$DISCORD_WEBHOOK_URL"
