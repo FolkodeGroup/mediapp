@@ -268,8 +268,8 @@ func TestLoginUserBlocked(t *testing.T) {
 
 	h.Login(ctx)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("Se esperaba status 401, obtuvo %d", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("Se esperaba status 403, obtuvo %d", rec.Code)
 	}
 	var resp map[string]interface{}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
