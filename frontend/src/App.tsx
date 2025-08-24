@@ -5,6 +5,7 @@ import LoginView from './components/LoginSection/LoginView';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { ReactNode } from 'react';
 
@@ -46,9 +47,11 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <MainLayout>
-          <AppRoutes />
-        </MainLayout>
+        <ErrorBoundary>
+          <MainLayout>
+            <AppRoutes />
+          </MainLayout>
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   );

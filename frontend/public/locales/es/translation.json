@@ -1,0 +1,12 @@
+{
+  "login": {
+    "userLabel": "Usuario",
+    "passwordLabel": "Contraseña",
+    "loginButton": "Iniciar sesión",
+    "registerButton": "Registrarse",
+    "successMessage": "Inicio de sesión exitoso. Redirigiendo...",
+    "errorMessage": "Error durante el login.",
+    "userRequired": "El usuario es obligatorio",
+    "passwordRequired": "La contraseña es obligatoria"
+  }
+}
