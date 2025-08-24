@@ -91,7 +91,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// (No se usa Redis en la versión de tests; mantener compatibilidad con DB-only)
 
 	var loginReq struct {
-		Email    string `json:"email" binding:"required,email"`
+		Username string `json:"username" binding:"required"` // Cambiado a "username"    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required"`
 	}
 
@@ -101,7 +101,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	log.Info("Intento de login",
-		zap.String("email", loginReq.Email),
+		zap.String("username", loginReq.Username),
 		zap.String("ip", c.ClientIP()))
 
 	var user models.Usuario
@@ -114,8 +114,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, 
 			   activo, creado_en, intentos_fallidos, ultimo_login
 		FROM usuarios 
-		WHERE email = $1 AND activo = true
-	`, loginReq.Email).Scan(
+		WHERE nombre = $1 AND activo = true
+	`, loginReq.Username).Scan(
 		&user.ID, &user.Nombre, &user.Email, &passwordHash, &user.RolID,
 		&user.ConsultorioID, &user.Activo, &user.CreadoEn,
 		&intentosFallidos, &ultimoLogin,
@@ -123,21 +123,21 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// LOG TEMPORAL PARA DEPURACIÓN
 	log.Info("DEBUG: Valores después del Scan",
-		zap.String("email", loginReq.Email),
+		zap.String("username", loginReq.Username),
 		zap.Int("intentos_fallidos", intentosFallidos),
 		zap.String("password_hash_length", fmt.Sprintf("%d", len(passwordHash))))
 
 	// Usar errors.Is para detectar sql.ErrNoRows
 	if errors.Is(err, sql.ErrNoRows) {
 		h.logger.Warn("Intento de login fallido - usuario no encontrado",
-			zap.String("email", loginReq.Email),
+			zap.String("username", loginReq.Username),
 			zap.String("ip", c.ClientIP()))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
 		return
 	} else if err != nil {
 		log.Error("Error al buscar usuario en la base de datos",
 			zap.Error(err),
-			zap.String("email", loginReq.Email))
+			zap.String("username", loginReq.Username))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
 		return
 	}
@@ -150,7 +150,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	if intentosFallidos >= 5 {
 		log.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
-			zap.String("email", loginReq.Email),
+			zap.String("username", loginReq.Username),
 			zap.String("user_id", user.ID.String()),
 			zap.Int("intentos_fallidos", intentosFallidos),
 			zap.String("ip", c.ClientIP()))
@@ -168,15 +168,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		_, execErr := h.db.Exec(c.Request.Context(), `
 			UPDATE usuarios 
 			SET intentos_fallidos = $1 
-			WHERE email = $2
-		`, newAttempts, loginReq.Email)
+			WHERE nombre = $2
+		`, newAttempts, loginReq.Username)
 
 		if execErr != nil {
-			log.Error("Error al actualizar intentos fallidos", zap.Error(execErr), zap.String("email", loginReq.Email))
+			log.Error("Error al actualizar intentos fallidos", zap.Error(execErr), zap.String("email", loginReq.Username))
 		}
 
 		h.logger.Warn("Intento de login fallido - contraseña incorrecta",
-			zap.String("email", loginReq.Email),
+			zap.String("email", loginReq.Username),
 			zap.String("ip", c.ClientIP()),
 			zap.Int("intentos_fallidos", newAttempts))
 
@@ -192,13 +192,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	_, execErr := h.db.Exec(c.Request.Context(), `
 		UPDATE usuarios 
 		SET intentos_fallidos = 0, ultimo_login = $1 
-		WHERE email = $2
-	`, now, loginReq.Email)
+		WHERE nombre = $2
+	`, now, loginReq.Username)
 
 	if execErr != nil {
 		log.Error("Error al actualizar datos de login exitoso",
 			zap.Error(execErr),
-			zap.String("email", loginReq.Email))
+			zap.String("username", loginReq.Username))
 		// No retornamos error aquí, solo loggeamos
 	}
 
