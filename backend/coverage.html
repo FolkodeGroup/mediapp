@@ -1,0 +1,1850 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>server: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/FolkodeGroup/mediapp/cmd/server/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/FolkodeGroup/mediapp/cmd/vault_get_secret.go (0.0%)</option>
+				
+				<option value="file2">github.com/FolkodeGroup/mediapp/docs/docs.go (0.0%)</option>
+				
+				<option value="file3">github.com/FolkodeGroup/mediapp/internal/auth/jwt.go (0.0%)</option>
+				
+				<option value="file4">github.com/FolkodeGroup/mediapp/internal/config/config.go (0.0%)</option>
+				
+				<option value="file5">github.com/FolkodeGroup/mediapp/internal/db/db.go (0.0%)</option>
+				
+				<option value="file6">github.com/FolkodeGroup/mediapp/internal/handlers/auth.go (44.0%)</option>
+				
+				<option value="file7">github.com/FolkodeGroup/mediapp/internal/handlers/health.go (0.0%)</option>
+				
+				<option value="file8">github.com/FolkodeGroup/mediapp/internal/handlers/pacientes.go (0.0%)</option>
+				
+				<option value="file9">github.com/FolkodeGroup/mediapp/internal/logger/context.go (0.0%)</option>
+				
+				<option value="file10">github.com/FolkodeGroup/mediapp/internal/logger/logger.go (50.0%)</option>
+				
+				<option value="file11">github.com/FolkodeGroup/mediapp/internal/middleware/logging.go (0.0%)</option>
+				
+				<option value="file12">github.com/FolkodeGroup/mediapp/internal/middleware/request_id.go (0.0%)</option>
+				
+				<option value="file13">github.com/FolkodeGroup/mediapp/internal/security/password.go (71.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "fmt"
+        "net/http"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/joho/godotenv"
+        "go.uber.org/zap"
+
+        "github.com/FolkodeGroup/mediapp/internal/auth"
+        "github.com/FolkodeGroup/mediapp/internal/config"
+        "github.com/FolkodeGroup/mediapp/internal/db"
+        "github.com/FolkodeGroup/mediapp/internal/handlers"
+        "github.com/FolkodeGroup/mediapp/internal/logger"
+        "github.com/FolkodeGroup/mediapp/internal/middleware"
+
+        _ "github.com/FolkodeGroup/mediapp/docs"
+        swaggerFiles "github.com/swaggo/files"
+        ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+func main() <span class="cov0" title="0">{
+        // Cargar variables de entorno
+        if err := godotenv.Load(); err != nil </span><span class="cov0" title="0">{
+                fmt.Println("No se encontró archivo .env, usando variables del sistema")
+        }</span>
+        <span class="cov0" title="0">config.LoadEnv()
+
+        // Inicializar el logger
+        logger.Init()
+        defer logger.Sync()
+
+        // Inicializar autenticación JWT
+        auth.Init(logger.L())
+
+        // Conexión a la base de datos
+        pool, err := db.Connect(logger.L())
+        if err != nil </span><span class="cov0" title="0">{
+                logger.L().Fatal("No se pudo conectar a la base de datos", zap.Error(err))
+        }</span>
+        <span class="cov0" title="0">defer func() </span><span class="cov0" title="0">{
+                if pool != nil </span><span class="cov0" title="0">{
+                        pool.Close()
+                        logger.L().Info("Pool de conexiones cerrado")
+                }</span>
+        }()
+
+        //  Ejecutar migración para campos de login
+        <span class="cov0" title="0">if err := db.AddLoginFields(pool, logger.L()); err != nil </span><span class="cov0" title="0">{
+                logger.L().Error("Error en migración de campos de login", zap.Error(err))
+                // No es fatal, la aplicación puede continuar
+        }</span>
+
+        // Configurar modo de Gin
+        <span class="cov0" title="0">if os.Getenv("ENV") == "production" </span><span class="cov0" title="0">{
+                gin.SetMode(gin.ReleaseMode)
+        }</span> else<span class="cov0" title="0"> {
+                gin.SetMode(gin.DebugMode)
+        }</span>
+
+        // Crear handlers
+        <span class="cov0" title="0">authHandler := handlers.NewAuthHandler(logger.L(), pool)
+        pacienteHandler := handlers.NewPacienteHandler(pool, logger.L())
+
+        // Crear router
+        router := gin.New()
+        router.Use(gin.Logger())
+        router.Use(gin.Recovery())
+
+        // Middlewares
+        router.Use(middleware.RequestIDMiddleware(logger.L()))
+        router.Use(middleware.LoggingMiddleware())
+        router.Use(gin.Recovery()) // Puedes mantener este o mejorarlo también
+
+        // Rutas públicas
+        router.GET("/", func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.JSON(http.StatusOK, gin.H{
+                        "message":  "Bienvenido a la API de MediApp",
+                        "status":   "Backend Go funcionando correctamente",
+                        "service":  "mediapp-backend",
+                        "version":  "1.0.0",
+                        "database": "Supabase (PostgreSQL)",
+                })
+        }</span>)
+
+        // Documentación Swagger UI
+        <span class="cov0" title="0">router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+        // Health check real con acceso a pool de DB
+        router.GET("/health", handlers.HealthCheck(pool))
+
+        // Rutas de autenticación
+        router.POST("/register", authHandler.Register)
+        router.POST("/login", authHandler.Login)
+        router.GET("/protected", authHandler.ProtectedEndpoint)
+
+        // API v1 routes
+        v1 := router.Group("/api/v1")
+        </span><span class="cov0" title="0">{
+                // Rutas de pacientes
+                v1.GET("/pacientes", pacienteHandler.GetPacientes)
+                v1.GET("/pacientes/:id", pacienteHandler.GetPaciente)
+                v1.POST("/pacientes", pacienteHandler.CreatePaciente)
+                v1.PUT("/pacientes/:id", pacienteHandler.UpdatePaciente)
+                v1.DELETE("/pacientes/:id", pacienteHandler.DeletePaciente)
+
+                // Rutas de prueba y diagnóstico
+                v1.GET("/test/supabase", pacienteHandler.TestSupabaseConnection)
+                v1.GET("/inspect/tables", pacienteHandler.InspectTables)
+                v1.GET("/connect/all-tables", pacienteHandler.ConnectAllTables)
+        }</span>
+
+        // Puerto
+        <span class="cov0" title="0">port := os.Getenv("PORT")
+        if port == "" </span><span class="cov0" title="0">{
+                port = "8080"
+        }</span>
+
+        // Logs de inicio
+        <span class="cov0" title="0">logger.L().Info("Servidor iniciado",
+                zap.String("version", "1.0.0"),
+                zap.String("puerto", port),
+                zap.String("environment", os.Getenv("ENV")),
+        )
+
+        // Servidor
+        server := &amp;http.Server{
+                Addr:    ":" + port,
+                Handler: router,
+        }
+
+        // Canal para señales
+        done := make(chan os.Signal, 1)
+        signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+        // Goroutine para servidor
+        go func() </span><span class="cov0" title="0">{
+                logger.L().Info("Servidor escuchando", zap.String("address", ":"+port))
+                if err := server.ListenAndServe(); err != nil &amp;&amp; err != http.ErrServerClosed </span><span class="cov0" title="0">{
+                        logger.L().Fatal("Error al iniciar el servidor", zap.Error(err))
+                }</span>
+        }()
+
+        // Esperar señal
+        <span class="cov0" title="0">&lt;-done
+        logger.L().Info("Servidor deteniéndose...")
+
+        // Graceful shutdown
+        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer cancel()
+
+        if err := server.Shutdown(ctx); err != nil </span><span class="cov0" title="0">{
+                logger.L().Error("Error durante el apagado", zap.Error(err))
+        }</span>
+
+        <span class="cov0" title="0">logger.L().Info("Servidor detenido correctamente")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Script simple para recuperar JWT_SECRET_KEY desde Vault
+package main
+
+import (
+        "fmt"
+        "os"
+
+        "github.com/hashicorp/vault/api"
+)
+
+func main() <span class="cov0" title="0">{
+        vaultAddr := os.Getenv("VAULT_ADDR")
+        if vaultAddr == "" </span><span class="cov0" title="0">{
+                vaultAddr = "http://localhost:8200"
+        }</span>
+        <span class="cov0" title="0">vaultToken := os.Getenv("VAULT_TOKEN")
+        if vaultToken == "" </span><span class="cov0" title="0">{
+                vaultToken = "root"
+        }</span>
+
+        <span class="cov0" title="0">config := api.DefaultConfig()
+        config.Address = vaultAddr
+        client, err := api.NewClient(config)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(fmt.Sprintf("Error creando cliente Vault: %v", err))</span>
+        }
+        <span class="cov0" title="0">client.SetToken(vaultToken)
+
+        secret, err := client.Logical().Read("secret/data/mediapp")
+        if err != nil </span><span class="cov0" title="0">{
+                panic(fmt.Sprintf("Error leyendo secreto: %v", err))</span>
+        }
+
+        <span class="cov0" title="0">if secret != nil &amp;&amp; secret.Data["data"] != nil </span><span class="cov0" title="0">{
+                data := secret.Data["data"].(map[string]interface{})
+                jwt, ok := data["JWT_SECRET_KEY"].(string)
+                if ok </span><span class="cov0" title="0">{
+                        fmt.Println("JWT_SECRET_KEY:", jwt)
+                        if jwt == "supersecreto123" </span><span class="cov0" title="0">{
+                                fmt.Println("Secreto verificado correctamente.")
+                        }</span> else<span class="cov0" title="0"> {
+                                fmt.Println("El secreto recuperado NO es el esperado.")
+                        }</span>
+                } else<span class="cov0" title="0"> {
+                        fmt.Println("No se encontró JWT_SECRET_KEY en Vault.")
+                }</span>
+        } else<span class="cov0" title="0"> {
+                fmt.Println("No se encontró el secreto en Vault.")
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Package docs Code generated by swaggo/swag. DO NOT EDIT
+package docs
+
+import "github.com/swaggo/swag"
+
+const docTemplate = `{
+    "schemes": {{ marshal .Schemes }},
+    "swagger": "2.0",
+    "info": {
+        "description": "{{escape .Description}}",
+        "title": "{{.Title}}",
+        "contact": {},
+        "version": "{{.Version}}"
+    },
+    "host": "{{.Host}}",
+    "basePath": "{{.BasePath}}",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Verifica el estado del servicio y la base de datos",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Autenticación de usuario y generación de token JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login de usuario",
+                "parameters": [
+                    {
+                        "description": "Credenciales de acceso",
+                        "name": "loginReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}`
+
+// SwaggerInfo holds exported Swagger Info so clients can modify it
+var SwaggerInfo = &amp;swag.Spec{
+        Version:          "",
+        Host:             "",
+        BasePath:         "",
+        Schemes:          []string{},
+        Title:            "",
+        Description:      "",
+        InfoInstanceName: "swagger",
+        SwaggerTemplate:  docTemplate,
+        LeftDelim:        "{{",
+        RightDelim:       "}}",
+}
+
+func init() <span class="cov0" title="0">{
+        swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package auth
+
+import (
+        "fmt"
+        "os"
+        "time"
+
+        "github.com/golang-jwt/jwt/v5"
+        "go.uber.org/zap"
+)
+
+// getJWTSecretKey obtiene la clave secreta de las variables de entorno
+func getJWTSecretKey(logger *zap.Logger) []byte <span class="cov0" title="0">{
+        secret := os.Getenv("JWT_SECRET_KEY")
+        if secret == "" </span><span class="cov0" title="0">{
+                logger.Warn("JWT_SECRET_KEY no encontrada, usando valor por defecto")
+                return []byte("clave_secreta_por_defecto_muy_segura_12345")
+        }</span>
+        <span class="cov0" title="0">if len(secret) &lt; 32 </span><span class="cov0" title="0">{
+                logger.Warn("JWT_SECRET_KEY debería tener al menos 32 caracteres para mayor seguridad")
+        }</span>
+        <span class="cov0" title="0">return []byte(secret)</span>
+}
+
+// Variable para la clave secreta
+var jwtSecretKey []byte
+
+// Inicializar el paquete auth
+func Init(logger *zap.Logger) <span class="cov0" title="0">{
+        jwtSecretKey = getJWTSecretKey(logger)
+}</span>
+
+// CustomClaims estructura que incluye claims personalizados y estándar
+type CustomClaims struct {
+        UserID string `json:"user_id"`
+        RolID  int    `json:"rol_id"`
+        jwt.RegisteredClaims
+}
+
+// GenerateToken crea y firma un nuevo token JWT
+func GenerateToken(userID string, rolID int) (string, error) <span class="cov0" title="0">{
+        if jwtSecretKey == nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("JWT no inicializado. Llama a auth.Init() primero")
+        }</span>
+
+        <span class="cov0" title="0">expirationTime := time.Now().Add(24 * time.Hour)
+
+        claims := &amp;CustomClaims{
+                UserID: userID,
+                RolID:  rolID,
+                RegisteredClaims: jwt.RegisteredClaims{
+                        ExpiresAt: jwt.NewNumericDate(expirationTime),
+                        IssuedAt:  jwt.NewNumericDate(time.Now()),
+                        NotBefore: jwt.NewNumericDate(time.Now()),
+                        Subject:   fmt.Sprintf("user:%s", userID),
+                        Issuer:    "mediapp-backend",
+                },
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        signedToken, err := token.SignedString(jwtSecretKey)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("error al firmar el token: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return signedToken, nil</span>
+}
+
+// ValidateToken valida un token JWT
+func ValidateToken(tokenString string) (*CustomClaims, error) <span class="cov0" title="0">{
+        if jwtSecretKey == nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("JWT no inicializado. Llama a auth.Init() primero")
+        }</span>
+
+        <span class="cov0" title="0">claims := &amp;CustomClaims{}
+
+        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("método de firma inesperado: %v", token.Header["alg"])
+                }</span>
+                <span class="cov0" title="0">return jwtSecretKey, nil</span>
+        })
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("error al parsear el token: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">if !token.Valid </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token inválido")
+        }</span>
+
+        <span class="cov0" title="0">return claims, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package config
+
+import (
+        "log"
+        "os"
+
+        "github.com/hashicorp/vault/api"
+        "github.com/joho/godotenv"
+)
+
+// LoadSecretsFromVault carga los secretos desde HashiCorp Vault
+func LoadSecretsFromVault() <span class="cov0" title="0">{
+        // Obtiene la dirección y el token de Vault de las variables de entorno
+        // configuradas en docker-compose.yml
+        config := api.DefaultConfig()
+        config.Address = os.Getenv("VAULT_ADDR")
+        log.Printf("Conectando a Vault en: %s", config.Address)
+
+        client, err := api.NewClient(config)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error creando cliente de Vault: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">client.SetToken(os.Getenv("VAULT_TOKEN"))
+        log.Println("Token de Vault configurado correctamente.")
+
+        // Lee el secreto de la ruta que definimos en Vault
+        secret, err := client.Logical().Read("secret/data/mediapp")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error leyendo secreto de Vault: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">if secret == nil </span><span class="cov0" title="0">{
+                log.Println("No se encontró ningún secreto en la ruta especificada.")
+                return
+        }</span>
+
+        <span class="cov0" title="0">if secret.Data["data"] == nil </span><span class="cov0" title="0">{
+                log.Println("La clave 'data' no está presente en el secreto.")
+                return
+        }</span>
+
+        <span class="cov0" title="0">data := secret.Data["data"].(map[string]interface{})
+        if jwtSecret, ok := data["JWT_SECRET_KEY"].(string); ok </span><span class="cov0" title="0">{
+                os.Setenv("JWT_SECRET_KEY", jwtSecret)
+                log.Println("Secreto JWT_SECRET_KEY cargado desde Vault.")
+        }</span> else<span class="cov0" title="0"> {
+                log.Println("JWT_SECRET_KEY no encontrado en los datos del secreto.")
+        }</span>
+}
+
+// LoadEnv carga las variables de entorno desde un archivo .env si existe
+func LoadEnv() <span class="cov0" title="0">{
+        _ = godotenv.Load()
+}</span>
+
+// GetEnv obtiene una variable de entorno o un valor por defecto
+func GetEnv(key, fallback string) string <span class="cov0" title="0">{
+        if value, exists := os.LookupEnv(key); exists </span><span class="cov0" title="0">{
+                return value
+        }</span>
+        <span class="cov0" title="0">return fallback</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package db
+
+import (
+        "context"
+        "fmt"
+        "os"
+        "time"
+
+        "github.com/jackc/pgx/v5/pgxpool"
+        "go.uber.org/zap"
+)
+
+// Configura las variables de entorno de la base de datos
+const (
+        dbHost = "POSTGRES_HOST"
+        dbPort = "POSTGRES_PORT"
+        dbUser = "POSTGRES_USER"
+        dbPass = "POSTGRES_PASSWORD"
+        dbName = "POSTGRES_DB"
+)
+
+// Connect crea un pool de conexiones a PostgreSQL usando las variables de entorno detalladas.
+func Connect(logger *zap.Logger) (*pgxpool.Pool, error) <span class="cov0" title="0">{
+        // Usar DATABASE_URL si está presente, si no, armar la cadena manualmente
+        connStr := os.Getenv("DATABASE_URL")
+        if connStr == "" </span><span class="cov0" title="0">{
+                connStr = fmt.Sprintf(
+                        "postgres://%s:%s@%s:%s/%s?sslmode=require",
+                        os.Getenv(dbUser),
+                        os.Getenv(dbPass),
+                        os.Getenv(dbHost),
+                        os.Getenv(dbPort),
+                        os.Getenv(dbName),
+                )
+
+                // Validar que las variables de entorno están configuradas
+                if os.Getenv(dbUser) == "" || os.Getenv(dbPass) == "" || os.Getenv(dbHost) == "" || os.Getenv(dbName) == "" </span><span class="cov0" title="0">{
+                        logger.Error("Una o más variables de entorno de la base de datos no están definidas.")
+                        return nil, fmt.Errorf("variables de entorno de la base de datos incompletas")
+                }</span>
+        }
+
+        <span class="cov0" title="0">logger.Info("Intentando conectar a la base de datos", zap.String("database_url_masked", maskConnectionString(connStr)))
+
+        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer cancel()
+
+        pool, err := pgxpool.New(ctx, connStr)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Error creando el pool de conexiones", zap.Error(err))
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if err := pool.Ping(ctx); err != nil </span><span class="cov0" title="0">{
+                logger.Error("No se pudo conectar a la base de datos", zap.Error(err))
+                pool.Close()
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Conexión a PostgreSQL exitosa")
+        return pool, nil</span>
+}
+
+// maskConnectionString enmascara información sensible de la cadena de conexión para logs
+func maskConnectionString(connStr string) string <span class="cov0" title="0">{
+        // Remover la contraseña de la cadena de conexión para logs seguros
+        masked := connStr
+        if len(connStr) &gt; 20 </span><span class="cov0" title="0">{
+                masked = connStr[:20] + "***MASKED***"
+        }</span>
+        <span class="cov0" title="0">return masked</span>
+}
+
+// AddLoginFields agrega los campos de login a la tabla usuarios
+func AddLoginFields(pool *pgxpool.Pool, logger *zap.Logger) error <span class="cov0" title="0">{
+    query := `
+        ALTER TABLE usuarios 
+        ADD COLUMN IF NOT EXISTS ultimo_login TIMESTAMP WITH TIME ZONE NULL,
+        ADD COLUMN IF NOT EXISTS intentos_fallidos INTEGER NOT NULL DEFAULT 0;
+    `
+    
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+    
+    _, err := pool.Exec(ctx, query)
+    if err != nil </span><span class="cov0" title="0">{
+        logger.Error("Error agregando campos de login a la tabla usuarios", 
+            zap.Error(err))
+        return fmt.Errorf("error agregando campos de login: %w", err)
+    }</span>
+    
+    <span class="cov0" title="0">logger.Info("Campos de login agregados exitosamente a la tabla usuarios")
+    return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package handlers
+
+import (
+        "database/sql"
+        "errors"
+        "fmt"
+        "net/http"
+        "time"
+
+        "context"
+
+        "github.com/FolkodeGroup/mediapp/internal/auth"
+        "github.com/FolkodeGroup/mediapp/internal/models"
+        "github.com/FolkodeGroup/mediapp/internal/security"
+        "github.com/gin-gonic/gin"
+        "github.com/google/uuid"
+        "github.com/jackc/pgx/v5"
+        "github.com/jackc/pgx/v5/pgconn"
+        "go.uber.org/zap"
+)
+
+// ...existing code...
+
+// DBTX define la interfaz mínima para la base de datos usada en AuthHandler
+type DBTX interface {
+        QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+        Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+}
+
+type AuthHandler struct {
+        logger        *zap.Logger
+        db            DBTX
+        generateToken func(userID string, rolID int) (string, error)
+        verifyPassword func(plain, hash string) bool
+}
+
+func NewAuthHandler(logger *zap.Logger, db DBTX) *AuthHandler <span class="cov8" title="1">{
+        return &amp;AuthHandler{
+                logger:        logger,
+                db:            db,
+                generateToken: auth.GenerateToken,
+        verifyPassword: security.CheckPasswordHash,
+        }
+}</span>
+
+// Login godoc
+// @Summary      Login de usuario
+// @Description  Autenticación de usuario y generación de token JWT
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        loginReq  body  object  true  "Credenciales de acceso"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /login [post]
+func (h *AuthHandler) Login(c *gin.Context) <span class="cov8" title="1">{
+        // Usamos el logger del handler en lugar de obtenerlo del contexto
+        log := h.logger
+
+        // Pero si quieres mantener el request_id, puedes hacer:
+        if requestID, exists := c.Get("request_id"); exists </span><span class="cov0" title="0">{
+                if id, ok := requestID.(string); ok </span><span class="cov0" title="0">{
+                        log = h.logger.With(zap.String("request_id", id))
+                }</span>
+        }
+
+        <span class="cov8" title="1">var loginReq struct {
+                Email    string `json:"email" binding:"required,email"`
+                Password string `json:"password" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;loginReq); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">log.Info("Intento de login",
+                zap.String("email", loginReq.Email),
+                zap.String("ip", c.ClientIP()))
+
+        var user models.Usuario
+        var passwordHash string
+        var intentosFallidos int
+        var ultimoLogin *time.Time
+
+        // ACTUALIZAR la consulta para incluir los nuevos campos
+        err := h.db.QueryRow(c.Request.Context(), `
+                SELECT id, nombre, email, contrasena_hash, rol_id, consultorio_id, 
+                           activo, creado_en, intentos_fallidos, ultimo_login
+                FROM usuarios 
+                WHERE email = $1 AND activo = true
+        `, loginReq.Email).Scan(
+                &amp;user.ID, &amp;user.Nombre, &amp;user.Email, &amp;passwordHash, &amp;user.RolID,
+                &amp;user.ConsultorioID, &amp;user.Activo, &amp;user.CreadoEn,
+                &amp;intentosFallidos, &amp;ultimoLogin,
+        )
+
+        // LOG TEMPORAL PARA DEPURACIÓN
+        log.Info("DEBUG: Valores después del Scan",
+                zap.String("email", loginReq.Email),
+                zap.Int("intentos_fallidos", intentosFallidos),
+                zap.String("password_hash_length", fmt.Sprintf("%d", len(passwordHash))))
+
+        // Usar errors.Is para detectar sql.ErrNoRows
+        if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                h.logger.Warn("Intento de login fallido - usuario no encontrado",
+                        zap.String("email", loginReq.Email),
+                        zap.String("ip", c.ClientIP()))
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
+                return
+        }</span> else<span class="cov8" title="1"> if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al buscar usuario en la base de datos",
+                        zap.Error(err),
+                        zap.String("email", loginReq.Email))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
+                return
+        }</span>
+
+        // Verificar si la cuenta está bloqueada por demasiados intentos (5 o más)
+        // LOG TEMPORAL
+        <span class="cov8" title="1">log.Info("DEBUG: Verificando bloqueo",
+                zap.Int("intentos_fallidos", intentosFallidos),
+                zap.Bool("esta_bloqueado", intentosFallidos &gt;= 5))
+
+        if intentosFallidos &gt;= 5 </span><span class="cov8" title="1">{
+                h.logger.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
+                        zap.String("email", loginReq.Email),
+                        zap.String("user_id", user.ID.String()),
+                        zap.Int("intentos_fallidos", intentosFallidos),
+                        zap.String("ip", c.ClientIP()))
+
+                c.JSON(http.StatusUnauthorized, gin.H{
+                        "error": "Cuenta temporalmente bloqueada por demasiados intentos fallidos. Contacte al administrador.",
+                })
+                return
+        }</span>
+
+        // Verificar la contraseña
+        // LOG TEMPORAL
+        <span class="cov8" title="1">log.Info("DEBUG: Verificando contraseña",
+                zap.String("password_input", loginReq.Password),
+                zap.String("password_hash", passwordHash),
+                zap.Bool("password_valid", h.verifyPassword(loginReq.Password, passwordHash)))
+
+        if !h.verifyPassword(loginReq.Password, passwordHash) </span><span class="cov8" title="1">{
+                // INCREMENTAR intentos fallidos
+                newAttempts := intentosFallidos + 1
+                _, err := h.db.Exec(c.Request.Context(), `
+            UPDATE usuarios 
+            SET intentos_fallidos = $1 
+            WHERE email = $2
+        `, newAttempts, loginReq.Email)
+
+                if err != nil </span><span class="cov0" title="0">{
+                        h.logger.Error("Error al actualizar intentos fallidos",
+                                zap.Error(err),
+                                zap.String("email", loginReq.Email))
+                }</span>
+
+                <span class="cov8" title="1">h.logger.Warn("Intento de login fallido - contraseña incorrecta",
+                        zap.String("email", loginReq.Email),
+                        zap.String("ip", c.ClientIP()),
+                        zap.Int("intentos_fallidos", newAttempts))
+
+                c.JSON(http.StatusUnauthorized, gin.H{
+                        "error":              "Credenciales inválidas",
+                        "intentos_restantes": 5 - newAttempts, // Asumiendo bloqueo después de 5 intentos
+                })
+                return</span>
+        }
+
+        // LOGIN EXITOSO - Reiniciar intentos y actualizar último login
+        <span class="cov8" title="1">now := time.Now()
+        _, err = h.db.Exec(c.Request.Context(), `
+        UPDATE usuarios 
+        SET intentos_fallidos = 0, ultimo_login = $1 
+        WHERE email = $2
+    `, now, loginReq.Email)
+
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al actualizar datos de login exitoso",
+                        zap.Error(err),
+                        zap.String("email", loginReq.Email))
+                // No retornamos error aquí, solo loggeamos
+        }</span>
+
+        // Generar token JWT
+        <span class="cov8" title="1">token, err := h.generateToken(user.ID.String(), user.RolID)
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al generar token",
+                        zap.Error(err),
+                        zap.String("user_id", user.ID.String()))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al generar token"})
+                return
+        }</span>
+
+        // Log exitoso con información relevante
+        <span class="cov8" title="1">h.logger.Info("Login exitoso",
+                zap.String("user_id", user.ID.String()),
+                zap.String("email", user.Email),
+                zap.String("ip", c.ClientIP()),
+                zap.Time("ultimo_login", now),
+                zap.Int("rol_id", user.RolID))
+
+        // Respuesta exitosa con token y datos del usuario
+        c.JSON(http.StatusOK, gin.H{
+                "message": "Login exitoso",
+                "token":   token,
+                "user": gin.H{
+                        "id":             user.ID.String(),
+                        "nombre":         user.Nombre,
+                        "email":          user.Email,
+                        "rol_id":         user.RolID,
+                        "consultorio_id": user.ConsultorioID,
+                        "activo":         user.Activo,
+                        "creado_en":      user.CreadoEn,
+                },
+                "expires": time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+        })</span>
+}
+
+// Register godoc
+// @Summary      Registrar nuevo usuario
+// @Description  Crea una nueva cuenta de usuario
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        registerReq  body  object  true  "Datos de registro"
+// @Success      201  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /register [post]
+func (h *AuthHandler) Register(c *gin.Context) <span class="cov0" title="0">{
+        var input struct {
+                Nombre        string `json:"nombre" binding:"required"`
+                Email         string `json:"email" binding:"required,email"`
+                Password      string `json:"password" binding:"required,min=6"`
+                RolID         int    `json:"rol_id" binding:"required"`
+                ConsultorioID string `json:"consultorio_id" binding:"required,uuid"`
+                Activo        bool   `json:"activo"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">consultorioUUID, err := uuid.Parse(input.ConsultorioID)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Consultorio ID inválido"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">userID := uuid.New()
+
+        hashedPassword, err := security.HashPassword(input.Password)
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al hashear la contraseña", zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Error interno del servidor"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">_, err = h.db.Exec(c, `
+               INSERT INTO usuarios (id, nombre, email, contrasena_hash, rol_id, consultorio_id, activo, creado_en)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       `, userID, input.Nombre, input.Email, string(hashedPassword), input.RolID, consultorioUUID, input.Activo, time.Now())
+
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al guardar usuario en DB", zap.Error(err))
+                fmt.Printf("[DEBUG SQL ERROR] %v\n", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo registrar el usuario", "detalle": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusCreated, gin.H{
+                "message": "Usuario registrado exitosamente",
+                "id":      userID.String(),
+        })</span>
+}
+
+// ProtectedEndpoint ejemplo de endpoint protegido
+func (h *AuthHandler) ProtectedEndpoint(c *gin.Context) <span class="cov0" title="0">{
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" </span><span class="cov0" title="0">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Token requerido"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">var tokenString string
+        _, err := fmt.Sscanf(authHeader, "Bearer %s", &amp;tokenString)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Formato de token inválido"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">claims, err := auth.ValidateToken(tokenString)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Token inválido: " + err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{
+                "message": "Acceso autorizado",
+                "user_id": claims.UserID,
+                "role":    claims.RolID,
+                "exp":     claims.ExpiresAt.Time.Format(time.RFC3339),
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package handlers
+
+import (
+        "context"
+        "net/http"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/jackc/pgx/v5/pgxpool"
+)
+
+// HealthCheck godoc
+// @Summary      Health check
+// @Description  Verifica el estado del servicio y la base de datos
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /health [get]
+func HealthCheck(pool *pgxpool.Pool) gin.HandlerFunc <span class="cov0" title="0">{
+        return func(c *gin.Context) </span><span class="cov0" title="0">{
+                dbStatus := false
+                if pool != nil </span><span class="cov0" title="0">{
+                        ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+                        defer cancel()
+                        if err := pool.Ping(ctx); err == nil </span><span class="cov0" title="0">{
+                                dbStatus = true
+                        }</span>
+                }
+                <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{
+                        "status": "ok",
+                        "db":     dbStatus,
+                })</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package handlers
+
+import (
+        "context"
+        "net/http"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/google/uuid"
+        "github.com/jackc/pgx/v5/pgxpool"
+        "go.uber.org/zap"
+)
+
+func (h *PacienteHandler) CreatePaciente(c *gin.Context) <span class="cov0" title="0">{
+        var input Paciente
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+        <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        id := uuid.New().String()
+        creadoEn := time.Now().UTC().Format(time.RFC3339)
+
+        query := `
+               INSERT INTO pacientes (id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       `
+        _, err := h.pool.Exec(ctx, query,
+                id,
+                input.Nombre,
+                input.Apellido,
+                input.FechaNacimiento,
+                input.NroCredencial,
+                input.ObraSocial,
+                input.CondicionIVA,
+                input.Plan,
+                input.CreadoPorUsuario,
+                input.ConsultorioID,
+                creadoEn,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al crear paciente", zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear el paciente", "detalle": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusCreated, gin.H{
+                "message": "Paciente creado exitosamente",
+                "id":      id,
+        })</span>
+}
+
+// UpdatePaciente godoc
+// @Summary      Actualizar paciente
+// @Description  Actualiza los datos de un paciente existente
+// @Tags         pacientes
+// @Accept       json
+// @Produce      json
+// @Param        id        path     string  true  "ID del paciente"
+// @Param        paciente  body     object  true  "Datos del paciente"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes/{id} [put]
+func (h *PacienteHandler) UpdatePaciente(c *gin.Context) <span class="cov0" title="0">{
+        id := c.Param("id")
+        var input Paciente
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        query := `
+               UPDATE pacientes SET nombre=$1, apellido=$2, fecha_nacimiento=$3, nro_credencial=$4, obra_social=$5, condicion_iva=$6, plan=$7, creado_por_usuario=$8, consultorio_id=$9
+               WHERE id=$10
+       `
+        res, err := h.pool.Exec(ctx, query,
+                input.Nombre,
+                input.Apellido,
+                input.FechaNacimiento,
+                input.NroCredencial,
+                input.ObraSocial,
+                input.CondicionIVA,
+                input.Plan,
+                input.CreadoPorUsuario,
+                input.ConsultorioID,
+                id,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al actualizar paciente", zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el paciente", "detalle": err.Error()})
+                return
+        }</span>
+        <span class="cov0" title="0">if res.RowsAffected() == 0 </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Paciente no encontrado"})
+                return
+        }</span>
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"message": "Paciente actualizado exitosamente"})</span>
+}
+
+// DeletePaciente godoc
+// @Summary      Eliminar paciente
+// @Description  Elimina un paciente por ID
+// @Tags         pacientes
+// @Produce      json
+// @Param        id   path      string  true  "ID del paciente"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes/{id} [delete]
+func (h *PacienteHandler) DeletePaciente(c *gin.Context) <span class="cov0" title="0">{
+        id := c.Param("id")
+        ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        query := `DELETE FROM pacientes WHERE id=$1`
+        res, err := h.pool.Exec(ctx, query, id)
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al eliminar paciente", zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar el paciente", "detalle": err.Error()})
+                return
+        }</span>
+        <span class="cov0" title="0">if res.RowsAffected() == 0 </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Paciente no encontrado"})
+                return
+        }</span>
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"message": "Paciente eliminado exitosamente"})</span>
+}
+
+// PacienteHandler maneja las operaciones relacionadas con pacientes
+type PacienteHandler struct {
+        pool   *pgxpool.Pool
+        logger *zap.Logger
+}
+
+// NewPacienteHandler crea una nueva instancia del handler de pacientes
+func NewPacienteHandler(pool *pgxpool.Pool, logger *zap.Logger) *PacienteHandler <span class="cov0" title="0">{
+        return &amp;PacienteHandler{
+                pool:   pool,
+                logger: logger,
+        }
+}</span>
+
+// Paciente representa la estructura de la tabla 'pacientes' normalizada
+type Paciente struct {
+        ID               string  `json:"id" db:"id"`
+        Nombre           string  `json:"nombre" db:"nombre"`
+        Apellido         string  `json:"apellido" db:"apellido"`
+        FechaNacimiento  string  `json:"fecha_nacimiento" db:"fecha_nacimiento"`
+        NroCredencial    *string `json:"nro_credencial,omitempty" db:"nro_credencial"`
+        ObraSocial       *string `json:"obra_social,omitempty" db:"obra_social"`
+        CondicionIVA     *string `json:"condicion_iva,omitempty" db:"condicion_iva"`
+        Plan             *string `json:"plan,omitempty" db:"plan"`
+        CreadoPorUsuario *string `json:"creado_por_usuario,omitempty" db:"creado_por_usuario"`
+        ConsultorioID    *string `json:"consultorio_id,omitempty" db:"consultorio_id"`
+        CreadoEn         string  `json:"creado_en" db:"creado_en"`
+}
+
+// GetPacientes godoc
+// @Summary      Obtener lista de pacientes
+// @Description  Obtiene todos los pacientes desde Supabase
+// @Tags         pacientes
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes [get]
+func (h *PacienteHandler) GetPacientes(c *gin.Context) <span class="cov0" title="0">{
+        ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        query := `
+               SELECT 
+                       id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en
+               FROM pacientes 
+               ORDER BY creado_en DESC
+       `
+
+        rows, err := h.pool.Query(ctx, query)
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al consultar pacientes", zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{
+                        "error": "Error interno del servidor",
+                })
+                return
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        pacientes := make([]Paciente, 0)
+        for rows.Next() </span><span class="cov0" title="0">{
+                var (
+                        id, creadoPorUsuario, consultorioID           [16]byte
+                        nombre, apellido                              string
+                        fechaNacimiento, creadoEn                     time.Time
+                        nroCredencial, obraSocial, condicionIVA, plan *string
+                )
+                err := rows.Scan(
+                        &amp;id, &amp;nombre, &amp;apellido, &amp;fechaNacimiento, &amp;nroCredencial, &amp;obraSocial, &amp;condicionIVA, &amp;plan, &amp;creadoPorUsuario, &amp;consultorioID, &amp;creadoEn,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        h.logger.Error("Error al escanear paciente", zap.Error(err))
+                        continue</span>
+                }
+                <span class="cov0" title="0">p := Paciente{
+                        ID:               uuid.UUID(id).String(),
+                        Nombre:           nombre,
+                        Apellido:         apellido,
+                        FechaNacimiento:  fechaNacimiento.Format("2006-01-02"),
+                        NroCredencial:    nroCredencial,
+                        ObraSocial:       obraSocial,
+                        CondicionIVA:     condicionIVA,
+                        Plan:             plan,
+                        CreadoPorUsuario: ptrString(uuid.UUID(creadoPorUsuario).String()),
+                        ConsultorioID:    ptrString(uuid.UUID(consultorioID).String()),
+                        CreadoEn:         creadoEn.Format(time.RFC3339),
+                }
+                pacientes = append(pacientes, p)</span>
+        }
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{
+                "status":    "success",
+                "pacientes": pacientes,
+                "total":     len(pacientes),
+        })</span>
+}
+
+// Función auxiliar para convertir string a *string
+func ptrString(s string) *string <span class="cov0" title="0">{
+        return &amp;s
+}</span>
+
+// GetPaciente godoc
+// @Summary      Obtener paciente por ID
+// @Description  Obtiene un paciente específico por su ID
+// @Tags         pacientes
+// @Produce      json
+// @Param        id   path      int  true  "Patient ID"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/pacientes/{id} [get]
+func (h *PacienteHandler) GetPaciente(c *gin.Context) <span class="cov0" title="0">{
+        idParam := c.Param("id")
+
+        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
+
+        query := `
+               SELECT 
+                       id, nombre, apellido, fecha_nacimiento, nro_credencial, obra_social, condicion_iva, plan, creado_por_usuario, consultorio_id, creado_en
+               FROM pacientes 
+               WHERE id = $1
+       `
+
+        var (
+                id, creadoPorUsuario, consultorioID           [16]byte
+                nombre, apellido                              string
+                fechaNacimiento, creadoEn                     time.Time
+                nroCredencial, obraSocial, condicionIVA, plan *string
+        )
+        err := h.pool.QueryRow(ctx, query, idParam).Scan(
+                &amp;id, &amp;nombre, &amp;apellido, &amp;fechaNacimiento, &amp;nroCredencial, &amp;obraSocial, &amp;condicionIVA, &amp;plan, &amp;creadoPorUsuario, &amp;consultorioID, &amp;creadoEn,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al consultar paciente", zap.Error(err))
+                c.JSON(http.StatusNotFound, gin.H{
+                        "error": "Paciente no encontrado",
+                })
+                return
+        }</span>
+        <span class="cov0" title="0">p := Paciente{
+                ID:               uuid.UUID(id).String(),
+                Nombre:           nombre,
+                Apellido:         apellido,
+                FechaNacimiento:  fechaNacimiento.Format("2006-01-02"),
+                NroCredencial:    nroCredencial,
+                ObraSocial:       obraSocial,
+                CondicionIVA:     condicionIVA,
+                Plan:             plan,
+                CreadoPorUsuario: ptrString(uuid.UUID(creadoPorUsuario).String()),
+                ConsultorioID:    ptrString(uuid.UUID(consultorioID).String()),
+                CreadoEn:         creadoEn.Format(time.RFC3339),
+        }
+        c.JSON(http.StatusOK, gin.H{
+                "status":   "success",
+                "paciente": p,
+        })</span>
+}
+
+// TestSupabaseConnection godoc
+// @Summary      Probar conexión con Supabase
+// @Description  Prueba la conexión con las tablas existentes en Supabase
+// @Tags         test
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/test/supabase [get]
+func (h *PacienteHandler) TestSupabaseConnection(c *gin.Context) <span class="cov0" title="0">{
+        ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        // Probar conectividad básica
+        if err := h.pool.Ping(ctx); err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error de ping a Supabase", zap.Error(err))
+                c.JSON(http.StatusServiceUnavailable, gin.H{
+                        "status": "error",
+                        "error":  "No se puede conectar a Supabase",
+                })
+                return
+        }</span>
+
+        // Contar registros en todas las tablas de Supabase (nombres exactos)
+        <span class="cov0" title="0">tables := []string{
+                "auditorias",
+                "consultorios",
+                "datos_personales",
+                "historia_clinica_version", // Corregido: singular
+                "historias_clinicas",
+                "pacientes",
+                "permisos",
+                "recetas_medicas",
+                "rol_permiso",
+                "roles",
+                "turnos",
+                "usuarios",
+        }
+        counts := make(map[string]int)
+        tableDetails := make(map[string]map[string]interface{})
+
+        for _, table := range tables </span><span class="cov0" title="0">{
+                var count int
+                query := "SELECT COUNT(*) FROM " + table
+                err := h.pool.QueryRow(ctx, query).Scan(&amp;count)
+                if err != nil </span><span class="cov0" title="0">{
+                        h.logger.Warn("Error al consultar tabla", zap.String("table", table), zap.Error(err))
+                        counts[table] = -1
+                        tableDetails[table] = map[string]interface{}{
+                                "count": -1,
+                                "error": err.Error(),
+                        }
+                }</span> else<span class="cov0" title="0"> {
+                        counts[table] = count
+                        tableDetails[table] = map[string]interface{}{
+                                "count":  count,
+                                "status": "accessible",
+                        }
+                }</span>
+        }
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{
+                "status":           "success",
+                "database":         "connected",
+                "supabase_project": "mediapp-db",
+                "tables_count":     counts,
+                "table_details":    tableDetails,
+                "total_tables":     len(tables),
+                "connection_pool":  h.pool.Stat(),
+                "timestamp":        time.Now(),
+        })</span>
+}
+
+// InspectTables godoc
+// @Summary      Inspeccionar estructura de tablas
+// @Description  Obtiene la estructura de las tablas para verificar columnas
+// @Tags         test
+// @Produce      json
+// @Param        table   query     string  false  "Nombre de la tabla a inspeccionar (default: pacientes)"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/inspect/tables [get]
+func (h *PacienteHandler) InspectTables(c *gin.Context) <span class="cov0" title="0">{
+        ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        // Obtener tabla a inspeccionar desde query parameter
+        tableName := c.DefaultQuery("table", "pacientes")
+
+        // Lista de tablas permitidas por seguridad (nombres exactos de Supabase)
+        allowedTables := map[string]bool{
+                "auditorias":               true,
+                "consultorios":             true,
+                "datos_personales":         true,
+                "historia_clinica_version": true, // Corregido: singular
+                "historias_clinicas":       true,
+                "pacientes":                true,
+                "permisos":                 true,
+                "recetas_medicas":          true,
+                "rol_permiso":              true,
+                "roles":                    true,
+                "turnos":                   true,
+                "usuarios":                 true,
+        }
+
+        if !allowedTables[tableName] </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{
+                        "error": "Tabla no permitida",
+                        "allowed_tables": []string{
+                                "auditorias", "consultorios", "datos_personales",
+                                "historia_clinica_version", "historias_clinicas", "pacientes",
+                                "permisos", "recetas_medicas", "rol_permiso", "roles", "turnos", "usuarios",
+                        },
+                })
+                return
+        }</span>
+
+        // Obtener columnas de la tabla especificada
+        <span class="cov0" title="0">query := `
+                SELECT column_name, data_type, is_nullable, column_default
+                FROM information_schema.columns 
+                WHERE table_name = $1
+                ORDER BY ordinal_position
+        `
+
+        rows, err := h.pool.Query(ctx, query, tableName)
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.Error("Error al consultar estructura de tabla",
+                        zap.String("table", tableName), zap.Error(err))
+                c.JSON(http.StatusInternalServerError, gin.H{
+                        "error": "Error interno del servidor",
+                        "table": tableName,
+                })
+                return
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        var columns []map[string]interface{}
+        for rows.Next() </span><span class="cov0" title="0">{
+                var columnName, dataType, isNullable string
+                var columnDefault *string
+
+                err := rows.Scan(&amp;columnName, &amp;dataType, &amp;isNullable, &amp;columnDefault)
+                if err != nil </span><span class="cov0" title="0">{
+                        h.logger.Error("Error al escanear columna", zap.Error(err))
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">column := map[string]interface{}{
+                        "name":     columnName,
+                        "type":     dataType,
+                        "nullable": isNullable == "YES",
+                }
+                if columnDefault != nil </span><span class="cov0" title="0">{
+                        column["default"] = *columnDefault
+                }</span>
+                <span class="cov0" title="0">columns = append(columns, column)</span>
+        }
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{
+                "status":  "success",
+                "table":   tableName,
+                "columns": columns,
+                "count":   len(columns),
+        })</span>
+}
+
+// ConnectAllTables godoc
+// @Summary      Conectar y verificar todas las tablas
+// @Description  Conecta con todas las tablas de Supabase y obtiene un resumen completo
+// @Tags         test
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/connect/all-tables [get]
+func (h *PacienteHandler) ConnectAllTables(c *gin.Context) <span class="cov0" title="0">{
+        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer cancel()
+
+        // Lista completa de tablas en Supabase (nombres exactos)
+        tables := []string{
+                "auditorias",
+                "consultorios",
+                "datos_personales",
+                "historia_clinica_version", // Corregido: singular, no plural
+                "historias_clinicas",
+                "pacientes",
+                "permisos",
+                "recetas_medicas",
+                "rol_permiso",
+                "roles",
+                "turnos",
+                "usuarios",
+        }
+
+        allTablesData := make(map[string]interface{})
+        successfulConnections := 0
+        failedConnections := 0
+
+        for _, tableName := range tables </span><span class="cov0" title="0">{
+                tableData := make(map[string]interface{})
+
+                // 1. Contar registros
+                var count int
+                countQuery := "SELECT COUNT(*) FROM " + tableName
+                err := h.pool.QueryRow(ctx, countQuery).Scan(&amp;count)
+                if err != nil </span><span class="cov0" title="0">{
+                        h.logger.Warn("Error al consultar tabla",
+                                zap.String("table", tableName), zap.Error(err))
+                        tableData["status"] = "error"
+                        tableData["error"] = err.Error()
+                        tableData["count"] = -1
+                        failedConnections++
+                }</span> else<span class="cov0" title="0"> {
+                        tableData["status"] = "connected"
+                        tableData["count"] = count
+                        successfulConnections++
+
+                        // 2. Obtener estructura de tabla (si la conexión fue exitosa)
+                        columnsQuery := `
+                                SELECT column_name, data_type, is_nullable, column_default
+                                FROM information_schema.columns 
+                                WHERE table_name = $1
+                                ORDER BY ordinal_position
+                        `
+
+                        rows, err := h.pool.Query(ctx, columnsQuery, tableName)
+                        if err != nil </span><span class="cov0" title="0">{
+                                h.logger.Warn("Error al consultar estructura",
+                                        zap.String("table", tableName), zap.Error(err))
+                                tableData["columns_error"] = err.Error()
+                        }</span> else<span class="cov0" title="0"> {
+                                var columns []map[string]interface{}
+                                for rows.Next() </span><span class="cov0" title="0">{
+                                        var columnName, dataType, isNullable string
+                                        var columnDefault *string
+
+                                        err := rows.Scan(&amp;columnName, &amp;dataType, &amp;isNullable, &amp;columnDefault)
+                                        if err != nil </span><span class="cov0" title="0">{
+                                                continue</span>
+                                        }
+
+                                        <span class="cov0" title="0">column := map[string]interface{}{
+                                                "name":     columnName,
+                                                "type":     dataType,
+                                                "nullable": isNullable == "YES",
+                                        }
+                                        if columnDefault != nil </span><span class="cov0" title="0">{
+                                                column["default"] = *columnDefault
+                                        }</span>
+                                        <span class="cov0" title="0">columns = append(columns, column)</span>
+                                }
+                                <span class="cov0" title="0">rows.Close()
+                                tableData["columns"] = columns
+                                tableData["columns_count"] = len(columns)</span>
+                        }
+
+                        // 3. Obtener muestra de datos (primeros 3 registros si existen)
+                        <span class="cov0" title="0">if count &gt; 0 </span><span class="cov0" title="0">{
+                                sampleQuery := "SELECT * FROM " + tableName + " LIMIT 3"
+                                sampleRows, err := h.pool.Query(ctx, sampleQuery)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        tableData["sample_error"] = err.Error()
+                                }</span> else<span class="cov0" title="0"> {
+                                        // Convertir a slice de maps genérico
+                                        var samples []map[string]interface{}
+                                        for sampleRows.Next() </span><span class="cov0" title="0">{
+                                                // Obtener nombres de columnas
+                                                fieldDescriptions := sampleRows.FieldDescriptions()
+                                                columnNames := make([]string, len(fieldDescriptions))
+                                                for i, desc := range fieldDescriptions </span><span class="cov0" title="0">{
+                                                        columnNames[i] = string(desc.Name)
+                                                }</span>
+
+                                                // Crear slice de interfaces para escanear
+                                                <span class="cov0" title="0">values := make([]interface{}, len(columnNames))
+                                                valuePtrs := make([]interface{}, len(columnNames))
+                                                for i := range values </span><span class="cov0" title="0">{
+                                                        valuePtrs[i] = &amp;values[i]
+                                                }</span>
+
+                                                <span class="cov0" title="0">if err := sampleRows.Scan(valuePtrs...); err == nil </span><span class="cov0" title="0">{
+                                                        row := make(map[string]interface{})
+                                                        for i, colName := range columnNames </span><span class="cov0" title="0">{
+                                                                row[colName] = values[i]
+                                                        }</span>
+                                                        <span class="cov0" title="0">samples = append(samples, row)</span>
+                                                }
+                                        }
+                                        <span class="cov0" title="0">sampleRows.Close()
+                                        tableData["sample_data"] = samples
+                                        tableData["sample_count"] = len(samples)</span>
+                                }
+                        }
+                }
+
+                <span class="cov0" title="0">allTablesData[tableName] = tableData</span>
+        }
+
+        // Resumen final
+        <span class="cov0" title="0">summary := map[string]interface{}{
+                "status":                 "success",
+                "total_tables":           len(tables),
+                "successful_connections": successfulConnections,
+                "failed_connections":     failedConnections,
+                "connection_rate":        float64(successfulConnections) / float64(len(tables)) * 100,
+                "database":               "Supabase PostgreSQL",
+                "project":                "mediapp-db",
+                "timestamp":              time.Now(),
+                "pool_stats":             h.pool.Stat(),
+        }
+
+        c.JSON(http.StatusOK, gin.H{
+                "summary": summary,
+                "tables":  allTablesData,
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package logger
+
+import (
+        "context"
+
+        "go.uber.org/zap"
+)
+
+// FromContext devuelve un logger con requestID si está disponible
+func FromContext(ctx context.Context) *zap.Logger <span class="cov0" title="0">{
+        // Intentar obtener el logger del contexto (si fue setteado por el middleware)
+        if l, ok := ctx.Value("logger").(*zap.Logger); ok </span><span class="cov0" title="0">{
+                return l
+        }</span>
+        
+        // Fallback al logger global
+        <span class="cov0" title="0">return L()</span>
+}</pre>
+		
+		<pre class="file" id="file10" style="display: none">// backend/internal/logger/logger.go
+package logger
+
+import (
+        "go.uber.org/zap"
+)
+
+var log *zap.Logger
+
+// Init inicializa el logger global
+func Init() <span class="cov8" title="1">{
+        var err error
+        log, err = zap.NewProduction() // Logger en formato JSON por defecto
+        if err != nil </span><span class="cov0" title="0">{
+                panic("no se pudo inicializar el logger: " + err.Error())</span>
+        }
+}
+
+// L devuelve el logger global.
+// Si no está inicializado, se crea uno temporal.
+func L() *zap.Logger <span class="cov8" title="1">{
+        if log == nil </span><span class="cov0" title="0">{
+                tmp, _ := zap.NewProduction()
+                return tmp
+        }</span>
+        <span class="cov8" title="1">return log</span>
+}
+
+// Sync vacía buffers antes de cerrar la app.
+// Es recomendable llamarlo con defer en main().
+func Sync() <span class="cov0" title="0">{
+        if log != nil </span><span class="cov0" title="0">{
+                _ = log.Sync()
+        }</span>
+}
+
+/*
+Ejemplo de uso:
+
+package main
+
+import (
+        "backend/internal/logger"
+)
+
+func main() {
+        logger.Init()
+        defer logger.Sync()
+
+        logger.L().Info("Servidor iniciado", zap.String("modo", "producción"))
+}
+*/
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package middleware
+
+import (
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/FolkodeGroup/mediapp/internal/logger"
+        "go.uber.org/zap"
+)
+
+func LoggingMiddleware() gin.HandlerFunc <span class="cov0" title="0">{
+        return func(c *gin.Context) </span><span class="cov0" title="0">{
+                start := time.Now()
+
+                // Log de entrada
+                log := logger.FromContext(c.Request.Context())
+                log.Info("Petición recibida",
+                        zap.String("method", c.Request.Method),
+                        zap.String("path", c.Request.URL.Path),
+                        zap.String("clientIP", c.ClientIP()),
+                        zap.String("userAgent", c.Request.UserAgent()),
+                )
+
+                c.Next()
+
+                // Log de salida
+                log.Info("Petición completada",
+                        zap.String("method", c.Request.Method),
+                        zap.String("path", c.Request.URL.Path),
+                        zap.Int("status", c.Writer.Status()),
+                        zap.Duration("duration", time.Since(start)),
+                )
+        }</span>
+}</pre>
+		
+		<pre class="file" id="file12" style="display: none">package middleware
+
+import (
+        "context"
+
+        "github.com/gin-gonic/gin"
+        "github.com/google/uuid"
+        "go.uber.org/zap"
+)
+
+// Definimos nuestras propias keys de contexto aquí
+type contextKey string
+
+const (
+        requestIDKey contextKey = "request_id"
+        loggerKey    contextKey = "logger"
+)
+
+// RequestIDMiddleware genera un ID único por request y lo añade al contexto y headers
+func RequestIDMiddleware(logger *zap.Logger) gin.HandlerFunc <span class="cov0" title="0">{
+        return func(c *gin.Context) </span><span class="cov0" title="0">{
+                // Usar el header existente o generar uno nuevo
+                requestID := c.GetHeader("X-Request-ID")
+                if requestID == "" </span><span class="cov0" title="0">{
+                        requestID = uuid.New().String()
+                }</span>
+
+                // Establecer en el header de respuesta
+                <span class="cov0" title="0">c.Writer.Header().Set("X-Request-ID", requestID)
+                
+                // Crear logger con request_id
+                requestLogger := logger.With(zap.String("request_id", requestID))
+                
+                // Crear contexto con request_id y logger
+                ctx := context.WithValue(c.Request.Context(), requestIDKey, requestID)
+                ctx = context.WithValue(ctx, loggerKey, requestLogger)
+                
+                // También ponerlo en el contexto de gin para fácil acceso
+                c.Set("request_id", requestID)
+                
+                // Actualizar la request con el nuevo contexto
+                c.Request = c.Request.WithContext(ctx)
+
+                // Loggear el inicio de la request usando el logger con request_id
+                requestLogger.Info("Request iniciada",
+                        zap.String("method", c.Request.Method),
+                        zap.String("path", c.Request.URL.Path),
+                        zap.String("user_agent", c.Request.UserAgent()),
+                        zap.String("ip", c.ClientIP()))
+
+                c.Next()</span>
+        }
+}</pre>
+		
+		<pre class="file" id="file13" style="display: none">package security
+
+import "golang.org/x/crypto/bcrypt"
+
+// HashPassword hashea una contraseña usando bcrypt con el costo por defecto
+func HashPassword(password string) (string, error) <span class="cov8" title="1">{
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+    if err != nil </span><span class="cov0" title="0">{
+        return "", err
+    }</span>
+    <span class="cov8" title="1">return string(hashedPassword), nil</span>
+}
+
+// CheckPasswordHash verifica si una contraseña coincide con su hash
+// Retorna true si coinciden, false en caso contrario
+func CheckPasswordHash(password, hash string) bool <span class="cov8" title="1">{
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
+}</span>
+
+// CheckPassword mantiene la interfaz anterior para compatibilidad
+// Retorna nil si coinciden, error si no
+func CheckPassword(hash, password string) error <span class="cov0" title="0">{
+    return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+}</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
