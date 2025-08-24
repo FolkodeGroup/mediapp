@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -89,6 +90,26 @@ func main() {
 	router.Use(middleware.LoggingMiddleware())
 	router.Use(middleware.RateLimitMiddleware()) // Agregar rate limiting
 	router.Use(gin.Recovery())                   // Puedes mantener este o mejorarlo también
+
+
+	router.Use(secure.New(secure.Config{
+		STSSeconds: 31536000,
+		STSIncludeSubdomains: true,
+		STSPreload: true,
+		
+		//Esto se tendria que ajustar segun las necesidades del frontend
+		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';",
+
+
+		FrameDeny: true,
+		ContentTypeNosniff: true,
+		BrowserXssFilter: true,
+		ReferrerPolicy: "strict-origin-when-cross-origin",
+
+	}))
+
+
+
 
 	// Rutas públicas
 	router.GET("/", func(c *gin.Context) {
