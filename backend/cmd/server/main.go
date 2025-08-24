@@ -25,6 +25,8 @@ import (
 	_ "github.com/FolkodeGroup/mediapp/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -127,6 +129,9 @@ func main() {
 
 	// Health check real con acceso a pool de DB
 	router.GET("/health", handlers.HealthCheck(pool))
+
+
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Rutas de autenticación (protegidas por rate limiting)
 	authRoutes := router.Group("/")

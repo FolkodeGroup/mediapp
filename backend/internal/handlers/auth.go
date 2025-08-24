@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/FolkodeGroup/mediapp/internal/monitoring"
 	"github.com/FolkodeGroup/mediapp/internal/auth"
 	"github.com/FolkodeGroup/mediapp/internal/models"
 	"github.com/FolkodeGroup/mediapp/internal/security"
@@ -79,6 +80,8 @@ func NewAuthHandlerWithRedis(logger *zap.Logger, db DBTX, redisSvc *services.Red
 // @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	// Usamos el logger del handler en lugar de obtenerlo del contexto
+	monitoring.LoginAttempts.Inc()
+	
 	log := h.logger
 
 	// Pero si quieres mantener el request_id, puedes hacer:
@@ -129,12 +132,20 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Usar errors.Is para detectar sql.ErrNoRows
 	if errors.Is(err, sql.ErrNoRows) {
+		// caso de error 1: usuario no encontrado
+		monitoring.LoginErrors.Inc() // Incrementa el contador de errores
+
+
 		h.logger.Warn("Intento de login fallido - usuario no encontrado",
 			zap.String("username", loginReq.Username),
 			zap.String("ip", c.ClientIP()))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
 		return
 	} else if err != nil {
+
+		// error en la base de datos
+		monitoring.LoginErrors.Inc()
+
 		log.Error("Error al buscar usuario en la base de datos",
 			zap.Error(err),
 			zap.String("username", loginReq.Username))
@@ -149,6 +160,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		zap.Bool("esta_bloqueado", intentosFallidos >= 5))
 
 	if intentosFallidos >= 5 {
+
+		// caso de error 2: cuenta bloqueada
+		monitoring.LoginErrors.Inc()
+		
+		
 		log.Warn("Intento de login bloqueado - cuenta temporalmente bloqueada",
 			zap.String("username", loginReq.Username),
 			zap.String("user_id", user.ID.String()),
@@ -163,6 +179,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Verificar la contraseña (usar verificador inyectable)
 	if !h.verifyPassword(loginReq.Password, passwordHash) {
+
+		//caso de error 3: contraseña incorrecta
+		monitoring.LoginErrors.Inc()
+
 		// También actualizar en la base de datos (mantener compatibilidad)
 		newAttempts := intentosFallidos + 1
 		_, execErr := h.db.Exec(c.Request.Context(), `
@@ -205,6 +225,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Generar token JWT
 	token, tokErr := h.generateToken(user.ID.String(), user.RolID)
 	if tokErr != nil {
+
+		// error despues del login
+		monitoring.LoginErrors.Inc()
+
 		log.Error("Error al generar token",
 			zap.Error(tokErr),
 			zap.String("user_id", user.ID.String()))
