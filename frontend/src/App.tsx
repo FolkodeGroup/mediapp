@@ -5,7 +5,7 @@ import LoginView from './components/LoginSection/LoginView';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import { AuthProvider, useAuth } from './auth/AuthContext';
-
+import Register from './components/auth/Register';
 import { ReactNode } from 'react';
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -37,6 +37,8 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+
+        <Route path = '/register' element={<Register />} />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );
