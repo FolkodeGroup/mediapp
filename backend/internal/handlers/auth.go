@@ -143,6 +143,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Verificar si la cuenta está bloqueada por demasiados intentos (5 o más)
+
 	// LOG TEMPORAL
 	log.Info("DEBUG: Verificando bloqueo",
 		zap.Int("intentos_fallidos", intentosFallidos),
@@ -155,7 +156,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			zap.Int("intentos_fallidos", intentosFallidos),
 			zap.String("ip", c.ClientIP()))
 
-		c.JSON(http.StatusUnauthorized, gin.H{
+		c.JSON(http.StatusForbidden, gin.H{
 			"error": "Cuenta temporalmente bloqueada por demasiados intentos fallidos. Contacte al administrador.",
 		})
 		return

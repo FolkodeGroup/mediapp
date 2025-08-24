@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +33,8 @@ const LoginForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+
+
     setIsLoading(true);
     try {
       await Promise.resolve(login(data));
@@ -42,14 +44,41 @@ const LoginForm = () => {
       }, 1000);
     } catch (error: any) {
       let errorMsg = 'Error durante el login.';
-      if (error?.response?.data?.message) {
-        errorMsg = error.response.data.message;
+      if (error?.response) {
+        const status = error.response.status;
+        if (status === 400) {
+          errorMsg = 'Solicitud inválida. Verifica los datos ingresados.';
+        } else if (status === 401) {
+          errorMsg = 'Credenciales incorrectas o usuario bloqueado.';
+        } else if (status === 500) {
+          errorMsg = 'Error interno del servidor. Intenta más tarde.';
+        } else if (status === 403) {
+          errorMsg = 'Usuario bloqueado. Contactate con el administrador del software.';
+        }
+        else {
+          // Si el backend envía un mensaje específico
+          if (error.response.data?.message) {
+            errorMsg = error.response.data.message;
+          } else if (error.response.data?.error) {
+            errorMsg = error.response.data.error;
+          }
+        }
+      } else if (error?.message === 'Network Error') {
+        errorMsg = 'No se pudo conectar con el servidor. Verifica tu conexión.';
       }
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (message) {
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    }
+  }, [message])
 
   return (
     <form
@@ -79,7 +108,6 @@ const LoginForm = () => {
         )}
       </div>
 
-      {/* Contraseña */}
       <div>
         <label
           htmlFor="contrasena"
@@ -100,6 +128,10 @@ const LoginForm = () => {
           <p className="text-sm text-red-600">{errors.password.message}</p>
         )}
       </div>
+
+      {message && (
+        <Message type={message.type} text={message.text} />
+      )}
 
       {/* Botones */}
       <div className="flex gap-2 justify-center pt-2">

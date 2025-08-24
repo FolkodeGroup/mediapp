@@ -124,6 +124,7 @@ const LoginForm = () => {
           <button
             type="button"
             className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition btn-login"
+            
           >
             Volver
           </button>

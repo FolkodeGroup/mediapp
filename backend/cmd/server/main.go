@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-
+	"github.com/gin-contrib/cors"
 	"github.com/FolkodeGroup/mediapp/internal/auth"
 	"github.com/FolkodeGroup/mediapp/internal/config"
 	"github.com/FolkodeGroup/mediapp/internal/db"
@@ -84,6 +84,14 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Middlewares
 	router.Use(middleware.RequestIDMiddleware(logger.L()))
