@@ -113,7 +113,7 @@ func TestLoginSuccess(t *testing.T) {
 
 	userID := uuid.New()
 	rolID := 2
-	password := "testpass123"
+	password := "123456"
 	hashedPassword, _ := security.HashPassword(password)
 
 	mockdb := &mockDB{
@@ -146,7 +146,7 @@ func TestLoginSuccess(t *testing.T) {
 	// Inyectar verificador de contraseña para test
 	h.verifyPassword = func(plain, hash string) bool { return plain == password }
 
-	reqBody := map[string]string{"email": "test@example.com", "password": password}
+	reqBody := map[string]string{"username": "usuario", "password": password}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -202,7 +202,7 @@ func TestLoginInvalidPassword(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "mocktoken", nil }
 	h.verifyPassword = func(plain, hash string) bool { return false } // forzar fallo
 
-	reqBody := map[string]string{"email": "test@example.com", "password": "wrongpass"}
+	reqBody := map[string]string{"username": "usuario", "password": "wrongpass"}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +258,7 @@ func TestLoginUserBlocked(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "mocktoken", nil }
 	h.verifyPassword = func(plain, hash string) bool { return plain == password }
 
-	reqBody := map[string]string{"email": "test@example.com", "password": password}
+	reqBody := map[string]string{"username": "usuario", "password": password}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -305,7 +305,7 @@ func TestLoginUserNotFound(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "mocktoken", nil }
 	h.verifyPassword = func(plain, hash string) bool { return plain == "irrelevante" }
 
-	reqBody := map[string]string{"email": "noexiste@example.com", "password": "irrelevante"}
+	reqBody := map[string]string{"username": "usuarionoexistente", "password": "irrelevante"}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -345,7 +345,7 @@ func TestLoginQueryError(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "", nil }
 	h.verifyPassword = func(plain, hash string) bool { return false }
 
-	reqBody := map[string]string{"email": "x@example.com", "password": "p"}
+	reqBody := map[string]string{"username": "x@example.com", "password": "p"}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -418,7 +418,7 @@ func TestLoginTokenGenerationError(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "", errors.New("token fail") }
 	h.verifyPassword = func(plain, hash string) bool { return plain == password }
 
-	reqBody := map[string]string{"email": "test@example.com", "password": password}
+	reqBody := map[string]string{"username": "usuario", "password": password}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -472,7 +472,7 @@ func TestLoginExecUpdateAttemptsError(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "", nil }
 	h.verifyPassword = func(plain, hash string) bool { return false }
 
-	reqBody := map[string]string{"email": "test@example.com", "password": "wrong"}
+	reqBody := map[string]string{"username": "usuario", "password": "wrong"}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -493,7 +493,7 @@ func TestLoginResetAttemptsExecError(t *testing.T) {
 
 	userID := uuid.New()
 	rolID := 2
-	password := "testpass123"
+	password := "123456"
 	hashedPassword, _ := security.HashPassword(password)
 
 	mockdb := &mockDB{
@@ -526,7 +526,7 @@ func TestLoginResetAttemptsExecError(t *testing.T) {
 	h.generateToken = func(uid string, rid int) (string, error) { return "mocktoken", nil }
 	h.verifyPassword = func(plain, hash string) bool { return plain == password }
 
-	reqBody := map[string]string{"email": "test@example.com", "password": password}
+	reqBody := map[string]string{"username": "usuario", "password": password}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
