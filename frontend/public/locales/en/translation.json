@@ -1,0 +1,12 @@
+{
+  "login": {
+    "userLabel": "User",
+    "passwordLabel": "Password",
+    "loginButton": "Sign In",
+    "registerButton": "Register",
+    "successMessage": "Login successful. Redirecting...",
+    "errorMessage": "Error during login.",
+    "userRequired": "User is required",
+    "passwordRequired": "Password is required"
+  }
+}
