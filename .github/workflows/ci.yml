@@ -125,7 +125,10 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: |
+          npm cache clean --force
+          npm install jest-environment-jsdom
+          npm ci
 
       - name: Build frontend
         working-directory: frontend

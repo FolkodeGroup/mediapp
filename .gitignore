@@ -36,3 +36,6 @@ backend/tmp/
 
 # RSA KEYS
 *.pem
+
+# Frontend coverage
+frontend/coverage/

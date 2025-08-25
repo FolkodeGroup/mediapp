@@ -31,35 +31,7 @@
   ],
   "author": "MediApp Team",
   "license": "MIT",
-  "dependencies": {
-    "@hookform/resolvers": "^5.2.1",
-    "axios": "^1.11.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-hook-form": "^7.62.0",
-    "react-router-dom": "^7.1.1",
-    "zod": "^4.0.17"
-  },
-  "devDependencies": {
-    "@types/node": "^24.2.1",
-    "@types/react": "^19.1.1",
-    "@types/react-dom": "^19.1.1",
-    "@typescript-eslint/eslint-plugin": "^8.18.2",
-    "@typescript-eslint/parser": "^8.18.2",
-    "@vitejs/plugin-react-swc": "^3.7.2",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^9.17.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.16",
-    "msw": "^2.10.4",
-    "postcss": "^8.4.49",
-    "prettier": "^3.4.2",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.5"
-  },
+  
   "msw": {
     "workerDirectory": [
       "public"
